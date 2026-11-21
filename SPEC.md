@@ -2,7 +2,7 @@
 
 - **Status (2026-11-22):** design agreed with the user; building started (step 1). Working names throughout.
 - **Code:** `github.com/thanapat1273/cyberpunk-blunt-leap-vanilla-progression`
-- **Where things come from:** the user's own words are in [`DESIGN-NOTES.md`](DESIGN-NOTES.md) (decisions D1–D21; kept locally, not in the repository). The game facts are in [`RESEARCH.md`](RESEARCH.md).
+- **Where things come from:** the user's own words are in [`DESIGN-NOTES.md`](DESIGN-NOTES.md) (decisions D1–D23; kept locally, not in the repository). The game facts are in [`RESEARCH.md`](RESEARCH.md).
 - **If this file and the notes disagree, the notes win.** Fix this file.
 
 ---
@@ -130,7 +130,8 @@ One setting: **"Always charged" mode**, **off by default**. Off: any heavy attac
 
 - Which Dash-requirement look to keep (§2), decided in testing.
 - Names for both perks.
-- An icon for Stronger leap. Blunt leap's icon: an SVG redraw of Flash and Thunderclap's with a baseball bat for the katana.
+- An icon for Stronger leap.
+- **Blunt leap's icon** (`art/`, built by `tools/make_icon.py`): the game's Flash and Thunderclap icon with only the katana (blade and guard) replaced by a baseball bat; every other pixel is the game's. Katana removal done; the bat is a first draft, awaiting review.
 
 ## 9. Build steps
 

@@ -46,11 +46,11 @@ To remove the mod, delete those two folders.
 |---|---|
 | `r6/scripts/BluntLeap/` | redscript: settings, the system, the leap hooks, the charge hooks |
 | `r6/tweaks/BluntLeap/` | TweakXL records: the leap ability, the distance bonus, the charge pool |
-| `art/` | the perk icon (SVG) and a preview |
+| `art/` | the perk icon (PNG at the game size, SVG, and a preview) |
 | `tools/compile_check.sh` | compiles the scripts against a game install in a scratch folder |
 | `tools/make_icon.py` | builds the icon from the game icon it is based on |
 
 ## Credits
 
-- The perk icon is redrawn from the Flash and Thunderclap perk icon of Cyberpunk 2077 by CD PROJEKT RED, with the katana replaced by a baseball bat.
+- The perk icon is the Flash and Thunderclap perk icon of Cyberpunk 2077 by CD PROJEKT RED with its katana replaced by a baseball bat.
 - This is an unofficial fan mod, not affiliated with or endorsed by CD PROJEKT RED.

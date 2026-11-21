@@ -1,88 +1,103 @@
-"""Build the Blunt leap perk icon: the game's Flash and Thunderclap icon,
-redrawn as vector outlines, with the katana replaced by a baseball bat.
+"""Build the Blunt leap perk icon from the game's Flash and Thunderclap icon:
+the katana is taken out and a baseball bat is put in. Nothing else changes.
 
-    py -3.10 tools/make_icon.py <flash_thunderclap.png> <out.svg> [preview.png]
+    py -3.10 tools/make_icon.py <flash_thunderclap.png> <out folder> [work folder]
 
 The input is the perk icon cut from the game's own atlas
 (base\\gameplay\\gui\\common\\icons\\perks\\perks_icons.xbm, part
 "kenjutsu_area_09_perk2", 125 x 116 px). It is game art and is not kept in
 this repository; extract it from your own copy of the game.
 
-How it works: the icon is enlarged, the katana is cut out with a hand-placed
-outline, a bat is drawn along the same line from the same fist, and the
-result is traced back into outlines (marching squares). All coordinates below
-are in the source icon's pixels.
+Step 1, remove the katana. KATANA_ROWS lists, for every pixel row, the span
+of pixels that belong to the katana: the blade, the faint line trailing its
+lower side, and the round guard at the hand. Every pixel outside those spans
+is copied from the game's icon untouched.
+
+Step 2, add the bat. It is drawn as a shape, with a dark gap where the open
+hand lies over it, and merged into the icon.
+
+Out folder gets blunt-leap-icon.png (the icon at the game's size, same pixel
+format as the game's), blunt-leap-icon.svg (the same picture as outlines) and
+blunt-leap-icon-preview.png. With a work folder, the in-between pictures are
+written there too (they contain unchanged game art, so keep them out of the
+repository).
 
 Needs numpy and Pillow.
 """
 import math
+import os
 import sys
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
-K = 8  # working scale
+K = 8  # working scale for the bat and for tracing
 
-# --- hand-placed geometry (source pixels) -----------------------------------
+# --- step 1: the katana, row by row (first pixel, last pixel) ----------------
 
-# Everything that belongs to the katana: both blade bands, the serrated edge
-# and the faint ghost line along its lower side. The strokes at the hip, below
-# the blade, go too: with the blade gone they are left hanging in the air.
-KATANA = [
-    (96, 54), (101.8, 54), (102, 58), (101.5, 60), (100.5, 62), (98.8, 64),
-    (98.5, 66), (98, 68), (97, 70), (96, 72), (94, 76), (93, 80), (92, 86),
-    (92.5, 100), (93, 113), (8, 113), (8, 104), (12, 106), (15, 104),
-    (20, 102), (26, 100), (33, 98), (37, 96), (43, 94), (47, 92), (52, 90),
-    (56, 88), (60, 86), (63, 84), (66, 82), (70, 80), (74, 78), (77, 76),
-    (80, 74), (82, 72), (85, 70), (87, 68), (89, 66), (91, 64), (92, 62),
-    (94, 60), (95, 58), (96, 56),
-]
+KATANA_ROWS = {
+    # the guard: an oval around the blade's root, below the end of the forearm
+    47: (98, 100),
+    **{y: (88, 106) for y in range(48, 64)},
+    64: (88, 104), 65: (87, 102), 66: (87, 99), 67: (86, 99),
+    # the blade with the faint line along its lower side
+    68: (84, 97), 69: (83, 96), 70: (82, 95), 71: (81, 95), 72: (80, 94),
+    73: (79, 93), 74: (78, 92), 75: (76, 92), 76: (75, 91), 77: (73, 90),
+    78: (72, 89), 79: (70, 88), 80: (66, 87), 81: (66, 86), 82: (66, 85),
+    83: (65, 84), 84: (63, 83), 85: (61, 82), 86: (59, 81), 87: (57, 79),
+    88: (55, 79), 89: (53, 77), 90: (51, 77), 91: (49, 77), 92: (46, 75),
+    93: (44, 75), 94: (42, 75), 95: (39, 75), 96: (30, 70), 97: (30, 68),
+    98: (30, 67), 99: (27, 66), 100: (24, 63), 101: (22, 62), 102: (18, 60),
+    103: (17, 59), 104: (10, 57), 105: (10, 55), 106: (10, 52), 107: (10, 50),
+    108: (20, 46),
+}
 
-# The left hand (palm and fingers). It stays in front of the bat.
-FRONT = [(38, 69), (75, 69), (75, 84.5), (38, 84.5)]
+# --- step 2: the bat ----------------------------------------------------------
 
-# The bat: a straight line through the middle of the gripping fist.
-FIST = (101.0, 56.0)
-DIRECTION = (-0.806, 0.592)   # towards the barrel, unit length
-KNOB_BEHIND_FIST = 12.0       # the knob end sits this far behind the fist
-BAT_LENGTH = 97.0
-HIDDEN_BY_FIST = (4.6, 16.5)  # stretch of the bat (from the knob end) not drawn
-GAP = 1.5                     # dark gap between overlapping shapes
-SMOOTH = 0.17                 # blur of the source art before tracing
-SOLID = 0.34                  # coverage from which a pixel counts as white
-FAINT = 0.13                  # coverage from which it counts as faint
+KNOB = (102.0, 52.5)          # centre of the knob, just under the forearm's end
+DIRECTION = (-0.8045, 0.594)  # towards the barrel, unit length
+BAT_LENGTH = 95.0             # from the knob's outer end to the barrel's end
+KNOB_RADIUS = 3.3
+# The open left hand (palm and fingers) lies over the bat.
+FRONT = [(36, 69), (76, 69), (76, 84.5), (36, 84.5)]
+GAP = 1.3                     # dark gap between the hand and the bat
 
 
 def bat_radius(s):
-    """Half-width of the bat at distance s from the knob end."""
-    if s < 0 or s > BAT_LENGTH:
+    """Half-width of the bat at distance s from the knob's outer end."""
+    length, knob = BAT_LENGTH, KNOB_RADIUS
+    if s < 0 or s > length:
         return 0.0
-    if s < 3.3:                                   # knob, rounded
-        return 3.3 * math.sqrt(max(0.0, 1 - ((3.3 - s) / 3.3) ** 2))
-    if s < 4.2:
-        return 3.3
-    if s < 5.5:                                   # knob to handle
-        return 3.3 + (1.75 - 3.3) * (s - 4.2) / 1.3
-    if s < 40:                                    # handle
-        return 1.75 + (2.1 - 1.75) * (s - 5.5) / 34.5
-    if s < 72:                                    # taper
-        u = (s - 40) / 32.0
+    if s < knob:                                   # knob, rounded
+        return knob * math.sqrt(max(0.0, 1 - ((knob - s) / knob) ** 2))
+    if s < knob + 0.9:
+        return knob
+    if s < knob + 2.2:                             # knob to handle
+        return knob + (1.75 - knob) * (s - knob - 0.9) / 1.3
+    taper0, taper1, cap = length - 57, length - 25, length - 4
+    if s < taper0:                                 # handle
+        return 1.75 + 0.35 * (s - knob - 2.2) / (taper0 - knob - 2.2)
+    if s < taper1:                                 # taper
+        u = (s - taper0) / (taper1 - taper0)
         u = u * u * (3 - 2 * u)
         return 2.1 + (5.3 - 2.1) * u
-    if s < 93:                                    # barrel
-        return 5.3 + 0.2 * (s - 72) / 21.0
-    return 5.5 * math.sqrt(max(0.0, 1 - ((s - 93) / 4.0) ** 2))   # end
+    if s < cap:                                    # barrel
+        return 5.3 + 0.2 * (s - taper1) / (cap - taper1)
+    return 5.5 * math.sqrt(max(0.0, 1 - ((s - cap) / 4.0) ** 2))   # end
 
 
-def bat_outline(s0, s1, step=0.25):
+def bat_axis():
     dx, dy = DIRECTION
+    return KNOB[0] - dx * KNOB_RADIUS, KNOB[1] - dy * KNOB_RADIUS, dx, dy
+
+
+def bat_outline(step=0.25):
+    ox, oy, dx, dy = bat_axis()
     nx, ny = -dy, dx
-    ox = FIST[0] - dx * KNOB_BEHIND_FIST
-    oy = FIST[1] - dy * KNOB_BEHIND_FIST
-    n = int(round((s1 - s0) / step))
+    n = int(round(BAT_LENGTH / step))
     up, down = [], []
     for i in range(n + 1):
-        s = s0 + (s1 - s0) * i / n
+        s = BAT_LENGTH * i / n
         r = bat_radius(s)
         cx, cy = ox + dx * s, oy + dy * s
         up.append((cx + nx * r, cy + ny * r))
@@ -90,12 +105,12 @@ def bat_outline(s0, s1, step=0.25):
     return up + down[::-1]
 
 
-def bat_shadow_line(s0=47.0, s1=89.0, offset=0.42, width=0.55, step=0.5):
-    """A thin dark line along the barrel, on its lower side."""
-    dx, dy = DIRECTION
+def bat_shadow_line(offset=0.42, width=0.55, step=0.5):
+    """A thin dark line along the barrel's lower side, so the bat is not one
+    flat shape (the katana had its serrated line)."""
+    ox, oy, dx, dy = bat_axis()
     nx, ny = -dy, dx
-    ox = FIST[0] - dx * KNOB_BEHIND_FIST
-    oy = FIST[1] - dy * KNOB_BEHIND_FIST
+    s0, s1 = BAT_LENGTH - 50, BAT_LENGTH - 8
     n = int(round((s1 - s0) / step))
     up, down = [], []
     for i in range(n + 1):
@@ -109,29 +124,47 @@ def bat_shadow_line(s0=47.0, s1=89.0, offset=0.42, width=0.55, step=0.5):
     return up + down[::-1]
 
 
-# --- raster helpers ----------------------------------------------------------
+# --- raster helpers -----------------------------------------------------------
 
-def polygon_field(points, size, soften=0.0):
+def polygon_field(points, size):
     """Anti-aliased 0..1 field of a polygon given in source pixels."""
     w, h = size
     ss = 3
     im = Image.new("L", (w * ss, h * ss), 0)
     ImageDraw.Draw(im).polygon([(x * K * ss, y * K * ss) for x, y in points], fill=255)
-    im = im.resize((w, h), Image.LANCZOS)
-    if soften:
-        im = im.filter(ImageFilter.GaussianBlur(soften * K))
-    return np.asarray(im, dtype=np.float32) / 255.0
+    return np.asarray(im.resize((w, h), Image.LANCZOS), dtype=np.float32) / 255.0
 
 
-def dilate(field, radius):
-    """Grow the area where field >= 0.5 by radius source pixels."""
-    im = Image.fromarray(((field >= 0.5) * 255).astype(np.uint8))
+def dilate(mask, radius):
+    """Grow a true/false area by radius source pixels; returns a 0..1 field."""
+    im = Image.fromarray((mask * 255).astype(np.uint8))
     size = int(round(radius * K)) * 2 + 1
     im = im.filter(ImageFilter.MaxFilter(size)).filter(ImageFilter.GaussianBlur(K * 0.15))
     return np.asarray(im, dtype=np.float32) / 255.0
 
 
-# --- tracing (marching squares, then Douglas-Peucker) ------------------------
+def enlarge(alpha):
+    """The icon at K times its size (0..1), smoothly interpolated."""
+    h, w = alpha.shape
+    im = Image.fromarray(alpha.astype(np.float32) / 255.0, mode="F")
+    return np.asarray(im.resize((w * K, h * K), Image.BICUBIC)).clip(0, 1)
+
+
+def to_icon(alpha):
+    """The game's pixel format: the brightness in all four channels."""
+    a = np.clip(np.rint(alpha), 0, 255).astype(np.uint8)
+    return Image.fromarray(np.dstack([a, a, a, a]), mode="RGBA")
+
+
+def on_dark(alpha, scale):
+    h, w = alpha.shape
+    a = Image.fromarray(np.clip(np.rint(alpha), 0, 255).astype(np.uint8)).resize((w * scale, h * scale), Image.LANCZOS)
+    out = Image.new("RGB", a.size, (16, 18, 26))
+    out.paste(Image.new("RGB", a.size, (255, 255, 255)), (0, 0), a)
+    return out
+
+
+# --- tracing (marching squares, then Douglas-Peucker, then curves) ------------
 
 T, R, B, L = 0, 1, 2, 3
 CASES = {
@@ -194,8 +227,9 @@ def trace(field, level):
             used[following[0]] = True
             a, b = segments[following[0]]
             key = b if a == key else a
-        # back from the padded grid to source pixels
-        loops.append([((px - 1) / K, (py - 1) / K) for px, py in loop])
+        # back from the padded, enlarged grid to source pixels; a sample at
+        # enlarged pixel i sits at (i + 0.5) / K
+        loops.append([((px - 0.5) / K, (py - 0.5) / K) for px, py in loop])
     return loops
 
 
@@ -258,71 +292,84 @@ def smooth(loop, corner_degrees=58.0):
     return "".join(out) + "Z"
 
 
-def to_path(field, level, eps=0.07, min_area=0.35):
+def to_path(field, level, eps=0.06, min_area=0.12):
     parts = []
     for loop in trace(field, level):
         loop = simplify(loop, eps)
-        if len(loop) < 3 or area(loop) < min_area:
-            continue
-        parts.append(smooth(loop))
-    return "".join(parts), len(parts)
+        if len(loop) >= 3 and area(loop) >= min_area:
+            parts.append(smooth(loop))
+    return "".join(parts)
 
 
-# --- build -------------------------------------------------------------------
+# The game's icon has soft edges and half-bright lines. The outlines keep them
+# as five brightness steps, each drawn over the one before.
+STEPS = [(0.10, 0.20), (0.30, 0.40), (0.50, 0.60), (0.70, 0.80), (0.90, 1.00)]
 
-def build(src, out_svg, out_preview=None):
-    icon = Image.open(src).convert("RGBA")
-    w0, h0 = icon.size
-    a = np.asarray(icon, dtype=np.float32) / 255.0
-    coverage = a[..., 3] * a[..., :3].max(axis=2)
-    size = (w0 * K, h0 * K)
-    art = np.asarray(Image.fromarray(coverage, mode="F").resize(size, Image.BICUBIC)).clip(0, 1)
 
-    art = art * (1 - polygon_field(KATANA, size, soften=0.12))
-    # Take out the source's pixel wobble before tracing.
-    art = Image.fromarray((art * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(SMOOTH * K))
-    art = np.asarray(art, dtype=np.float32) / 255.0
-    front_zone = polygon_field(FRONT, size)
-    front = art * front_zone
-    back = art * (1 - front_zone)
-
-    bat = np.maximum(polygon_field(bat_outline(0.0, HIDDEN_BY_FIST[0]), size),
-                     polygon_field(bat_outline(HIDDEN_BY_FIST[1], BAT_LENGTH), size))
-    bat = bat * (1 - polygon_field(bat_shadow_line(), size))
-    bat_cut = bat * (1 - dilate(front, GAP))
-    back = back * (1 - dilate(bat, GAP))
-    final = np.maximum(np.maximum(back, front), bat_cut)
-
-    solid, n_solid = to_path(final, SOLID)
-    # The faint layer holds only what is not part of a solid shape: fading
-    # line ends, faint lines, the dotted outline of the fist.
-    faint_field = final * (1 - dilate((final >= SOLID).astype(np.float32), 0.4))
-    faint, n_faint = to_path(faint_field, FAINT, min_area=0.6)
-    svg = (
+def to_svg(field, w, h):
+    layers, shown_before = [], 0.0
+    for level, shown in STEPS:
+        opacity = (shown - shown_before) / (1 - shown_before)
+        shown_before = shown
+        layers.append('  <path fill="#fff" fill-opacity="%.3f" fill-rule="evenodd" d="%s"/>\n'
+                      % (opacity, to_path(field, level)))
+    return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %d %d" width="%d" height="%d">\n'
         '  <title>Blunt leap</title>\n'
-        '  <!-- Redrawn from Cyberpunk 2077\'s Flash and Thunderclap perk icon (CD PROJEKT RED),\n'
-        '       with the katana replaced by a baseball bat. Built by tools/make_icon.py. -->\n'
-        '  <path fill="#fff" fill-opacity="0.38" fill-rule="evenodd" d="%s"/>\n'
-        '  <path fill="#fff" fill-rule="evenodd" d="%s"/>\n'
-        '</svg>\n' % (w0, h0, w0 * 4, h0 * 4, faint, solid)
+        '  <!-- Cyberpunk 2077\'s Flash and Thunderclap perk icon (CD PROJEKT RED) with the\n'
+        '       katana replaced by a baseball bat. Built by tools/make_icon.py. -->\n'
+        '%s</svg>\n' % (w, h, w * 4, h * 4, "".join(layers))
     )
-    with open(out_svg, "w", encoding="utf-8", newline="\n") as f:
-        f.write(svg)
-    print("svg: %d bytes, %d solid and %d faint outlines" % (len(svg), n_solid, n_faint))
 
-    if out_preview:
-        # Before and after, side by side, on the perk screen's dark tone.
-        shade = np.clip(np.where(final >= SOLID, 1.0, np.where(faint_field >= FAINT, 0.38, 0.0)), 0, 1)
-        after = Image.fromarray((shade * 255).astype(np.uint8)).resize((w0 * 4, h0 * 4), Image.LANCZOS)
-        before = Image.fromarray((coverage * 255).astype(np.uint8)).resize((w0 * 4, h0 * 4), Image.LANCZOS)
-        pad = 24
-        sheet = Image.new("RGB", (w0 * 8 + pad * 3, h0 * 4 + pad * 2), (16, 18, 26))
-        white = Image.new("RGB", (w0 * 4, h0 * 4), (255, 255, 255))
-        sheet.paste(white, (pad, pad), before)
-        sheet.paste(white, (pad * 2 + w0 * 4, pad), after)
-        sheet.save(out_preview)
-        print("preview:", out_preview)
+
+# --- build --------------------------------------------------------------------
+
+def build(src, out_dir, work_dir=None):
+    original = np.asarray(Image.open(src).convert("RGBA"))[..., 3].astype(np.float32)
+    h, w = original.shape
+    size = (w * K, h * K)
+
+    # Step 1: take the katana out. Every other pixel stays as the game has it.
+    removed = np.zeros((h, w), dtype=bool)
+    for y, (x0, x1) in KATANA_ROWS.items():
+        removed[y, x0:x1 + 1] = True
+    kept = np.where(removed, 0.0, original)
+    print("step 1: %d pixels taken out, %d left unchanged" % (int((removed & (original > 0)).sum()),
+                                                              int((~removed & (original > 0)).sum())))
+
+    # Step 2: the bat, with a gap where the open hand lies over it.
+    kept_big = enlarge(kept)
+    front = kept_big * polygon_field(FRONT, size)
+    bat_big = polygon_field(bat_outline(), size) * (1 - polygon_field(bat_shadow_line(), size))
+    bat_big = bat_big * (1 - dilate(front >= 0.3, GAP))
+    bat = bat_big.reshape(h, K, w, K).mean(axis=(1, 3)) * 255.0
+    final = np.maximum(kept, bat)
+    changed = (np.rint(final) != np.rint(original)) & ~removed
+    print("step 2: the bat touches %d pixels outside the katana's place" % int(changed.sum()))
+
+    os.makedirs(out_dir, exist_ok=True)
+    to_icon(final).save(os.path.join(out_dir, "blunt-leap-icon.png"))
+    on_dark(final, 4).save(os.path.join(out_dir, "blunt-leap-icon-preview.png"), optimize=True)
+    svg = to_svg(np.maximum(kept_big, bat_big), w, h)
+    with open(os.path.join(out_dir, "blunt-leap-icon.svg"), "w", encoding="utf-8", newline="\n") as f:
+        f.write(svg)
+    print("svg: %d bytes" % len(svg))
+
+    if work_dir:
+        os.makedirs(work_dir, exist_ok=True)
+        to_icon(kept).save(os.path.join(work_dir, "step1-katana-removed.png"))
+        scale, pad = 5, 20
+        marked = on_dark(original, scale).convert("RGB")
+        red = Image.fromarray((removed * 150).astype(np.uint8)).resize(marked.size, Image.NEAREST)
+        marked.paste(Image.new("RGB", marked.size, (255, 40, 40)), (0, 0), red)
+        panels = [on_dark(original, scale), marked, on_dark(kept, scale), on_dark(final, scale)]
+        sheet = Image.new("RGB", (pad + (w * scale + pad) * len(panels), h * scale + pad * 2), (16, 18, 26))
+        for i, panel in enumerate(panels):
+            sheet.paste(panel, (pad + (w * scale + pad) * i, pad))
+        sheet.save(os.path.join(work_dir, "steps.png"))
+        for name, panel in (("1-original", panels[0]), ("2-katana-marked", marked),
+                            ("3-katana-removed", panels[2]), ("4-with-bat", panels[3])):
+            panel.save(os.path.join(work_dir, name + ".png"))
 
 
 if __name__ == "__main__":
