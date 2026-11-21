@@ -1,0 +1,10 @@
+# Game art cut from the game files, used as input by tools/make_icon.py
+*.xbm
+*.inkatlas
+flash_thunderclap*.png
+
+# Local scratch
+__pycache__/
+*.pyc
+/build/
+/dist/

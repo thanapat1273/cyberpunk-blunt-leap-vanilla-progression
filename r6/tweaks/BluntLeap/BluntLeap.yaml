@@ -1,0 +1,102 @@
+# Blunt Leap: game data (TweakXL).
+#
+# Nothing here changes a vanilla record. Every record is new and lives under
+# "BluntLeap.". The scripts in r6/scripts/BluntLeap apply these to the player.
+
+# --- The leap ability ------------------------------------------------------
+# Same structure as the vanilla blade-leap perk (Flash and Thunderclap,
+# NewPerks.Reflexes_Inbetween_Right_2), with the blunt-weapon condition.
+# The game's leap code only asks for the CanMeleeLeap flag; it has no
+# weapon-type check of its own.
+
+BluntLeap.LeapStats:
+  $type: StatModifierGroup
+  statModifiers:
+    - $type: ConstantStatModifier
+      statType: BaseStats.CanMeleeLeap
+      modifierType: Additive
+      value: 1.0
+
+BluntLeap.LeapEffector:
+  $type: ApplyStatGroupEffector
+  effectorClassName: ApplyStatGroupEffector
+  prereqRecord: Prereqs.BluntWeaponHeldPrereq
+  removeWithEffector: true
+  statGroup: BluntLeap.LeapStats
+
+BluntLeap.LeapAbility:
+  $type: GameplayLogicPackage
+  stackable: false
+  effectors:
+    - BluntLeap.LeapEffector
+
+# --- Leaping while in the air (its own package, so a setting can drop it) ---
+
+BluntLeap.AirLeapStats:
+  $type: StatModifierGroup
+  statModifiers:
+    - $type: ConstantStatModifier
+      statType: BaseStats.CanMeleeLeapInAir
+      modifierType: Additive
+      value: 1.0
+
+BluntLeap.AirLeapEffector:
+  $type: ApplyStatGroupEffector
+  effectorClassName: ApplyStatGroupEffector
+  prereqRecord: Prereqs.BluntWeaponHeldPrereq
+  removeWithEffector: true
+  statGroup: BluntLeap.AirLeapStats
+
+BluntLeap.AirLeapAbility:
+  $type: GameplayLogicPackage
+  stackable: false
+  effectors:
+    - BluntLeap.AirLeapEffector
+
+# --- Damage bonus by leap distance -----------------------------------------
+# The game's own effector class. maxPercentMult is rewritten from the settings
+# before the package is applied (see BluntLeapSystem.Refresh).
+
+BluntLeap.DistanceBonusPrereq:
+  $type: MultiPrereq
+  prereqClassName: gameMultiPrereq
+  aggregationType: AND
+  nestedPrereqs:
+    - Prereqs.BluntWeaponHeldPrereq
+    - Perks.IsHitStrongAttack
+
+BluntLeap.DistanceBonusEffector:
+  $type: Effector
+  effectorClassName: ModifyDamageWithLeapedDistance
+  prereqRecord: BluntLeap.DistanceBonusPrereq
+  operationType: Multiply
+  maxPercentMult: 1.5
+  minDistance: 0.0
+  maxDistance: 20.0
+
+BluntLeap.DistanceBonus:
+  $type: GameplayLogicPackage
+  stackable: false
+  effectors:
+    - BluntLeap.DistanceBonusEffector
+
+# --- Charge pool for blunt weapons that have none ---------------------------
+# Same pool type as the chainsword's (WeaponCharge), so the game's melee
+# crosshair bar, IsCharged() and the charged-damage rule all work unchanged.
+# It is a separate record: BaseStatPools.TechMeleeCharge is not touched.
+# The scripts empty it after each attack; the decay below is only a fallback.
+
+BluntLeap.ChargePool:
+  $type: StatPool
+  enumName: WeaponCharge
+  stat: BaseStats.Charge
+  initialValue: 0.0
+  savable: false
+  decay:
+    $type: PoolValueModifier
+    enabled: true
+    rangeBegin: 0.0
+    rangeEnd: 100.0
+    startDelay: 1.5
+    valuePerSec: 100.0
+    delayOnChange: true
