@@ -4,7 +4,7 @@
 // the work: MeleeChargedHoldEvents fills it while the attack is held, the
 // melee crosshair draws its bar, and the damage rule adds the charged bonus.
 // These hooks only make sure the pool is there in time, show or hide the
-// bar, and empty the pool after the attack.
+// bar, flash it when full, and empty the pool after the attack.
 
 // The weapon's crosshair appears: the earliest sure moment the weapon is in
 // hand. The original decides here, once, whether to show the charge bar.
@@ -46,6 +46,36 @@ protected cb func OnPreIntro() -> Bool {
   return result;
 }
 
+// The charge changed. When a charge we added becomes full, the bar pulses once.
+@wrapMethod(CrosshairGameController_Melee)
+public func UpdateResourceValue(oldValue: Float, newValue: Float, percToPoints: Float) -> Void {
+  let system: ref<BluntLeapSystem>;
+  let player: ref<GameObject>;
+  let pulse: ref<inkAnimDef>;
+  let scale: ref<inkAnimScale>;
+  wrappedMethod(oldValue, newValue, percToPoints);
+  if newValue < 99.9 || oldValue >= 99.9 || !IsDefined(this.m_chargeBar) {
+    return;
+  };
+  player = this.GetPlayerControlledObject();
+  if !IsDefined(player) {
+    return;
+  };
+  system = BluntLeapSystem.Get(player.GetGame());
+  if !IsDefined(system) || !system.OwnsChargeEntity(this.m_weaponID) || !system.Settings().fullFlash {
+    return;
+  };
+  scale = new inkAnimScale();
+  scale.SetStartScale(new Vector2(1.5, 1.5));
+  scale.SetEndScale(new Vector2(1.0, 1.0));
+  scale.SetDuration(0.3);
+  scale.SetType(inkanimInterpolationType.Quadratic);
+  scale.SetMode(inkanimInterpolationMode.EasyOut);
+  pulse = new inkAnimDef();
+  pulse.AddInterpolator(scale);
+  this.m_chargeBar.PlayAnimation(pulse);
+}
+
 // A strong attack starts to be held. Second chance to prepare the weapon
 // (settings changed with the weapon in hand), before the original starts
 // the charge.
@@ -63,17 +93,27 @@ public func OnEnter(stateContext: ref<StateContext>, scriptInterface: ref<StateG
 }
 
 // An attack's hit window is over. The game takes the attack's charge cost
-// here; blunt attacks have none, so our pool is emptied whole, once.
+// here; blunt attacks have none, so our pool is emptied whole, once. A
+// stronger leap's extra effects end here too.
 @wrapMethod(MeleeAttackGenericEvents)
 protected func ConsumeWeaponCharge(scriptInterface: ref<StateGameScriptInterface>, attackData: ref<MeleeAttackData>) -> Void {
   let weapon: ref<WeaponObject>;
   let system: ref<BluntLeapSystem>;
   wrappedMethod(scriptInterface, attackData);
   weapon = MeleeTransition.GetWeaponObject(scriptInterface);
-  if IsDefined(weapon) {
-    system = BluntLeapSystem.Get(weapon.GetGame());
-    if IsDefined(system) && system.OwnsChargeOf(weapon) {
-      this.ChangeStatPoolValue(scriptInterface, weapon.GetEntityID(), gamedataStatPoolType.WeaponCharge, -100.0, true);
-    };
+  if !IsDefined(weapon) {
+    return;
+  };
+  system = BluntLeapSystem.Get(weapon.GetGame());
+  if !IsDefined(system) {
+    return;
+  };
+  if system.OwnsChargeOf(weapon) {
+    this.ChangeStatPoolValue(scriptInterface, weapon.GetEntityID(), gamedataStatPoolType.WeaponCharge, -100.0, true);
+  };
+  // Gorilla Arms call this on every frame of the swing, so they are left to
+  // the timer instead.
+  if NotEquals(WeaponObject.GetWeaponType(weapon.GetItemID()), gamedataItemType.Cyb_StrongArms) {
+    system.DisarmStrongLeap();
   };
 }

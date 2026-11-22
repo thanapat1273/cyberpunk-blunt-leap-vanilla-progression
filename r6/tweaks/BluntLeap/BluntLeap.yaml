@@ -100,3 +100,118 @@ BluntLeap.ChargePool:
     startDelay: 1.5
     valuePerSec: 100.0
     delayOnChange: true
+
+# --- Stronger leap: what a fully charged leap does on its hit ---------------
+# One effector class of our own (BluntLeapImpactEffector, in the scripts). It
+# runs for the player on every strong melee hit, at the stage where the crit
+# is already known and the enemy has not picked its hit reaction yet.
+# The script decides the rest (EMP on a crit, send flying or stagger).
+
+BluntLeap.ImpactPrereq:
+  $type: HitPrereq
+  prereqClassName: HitTriggeredPrereq
+  callbackType: HitTriggered
+  pipelineStage: ProcessHitReaction
+  pipelineType: Damage
+  isSynchronous: true
+  ignoreSelfInflictedPressureWave: true
+  processMiss: false
+  conditions:
+    - Perks.IsHitStrongAttack_inline0
+    - Perks.IsHitStrongAttack_inline1
+
+BluntLeap.ImpactEffector:
+  $type: Effector
+  effectorClassName: BluntLeapImpactEffector
+  prereqRecord: BluntLeap.ImpactPrereq
+
+BluntLeap.Impact:
+  $type: GameplayLogicPackage
+  stackable: false
+  effectors:
+    - BluntLeap.ImpactEffector
+
+# The EMP burst: the Yinglong explosion (same look, same EMP status), with its
+# damage replaced by one Electrical value that the script sets before each
+# burst, and with no damage to V. Radius and damage follow the settings.
+
+BluntLeap.EMPDamage:
+  $type: ConstantStatModifier
+  statType: BaseStats.ElectricDamage
+  modifierType: Additive
+  value: 1.0
+
+BluntLeap.EMP:
+  $base: Attacks.YinglongEMP
+  playerIncomingDamageMultiplier: 0.0
+  range: 3.0
+  statModifiers:
+    - BluntLeap.EMPDamage
+
+# --- The two perks (made real by Perk Addition Framework) -------------------
+# Record names must be NewPerks.<enumName>. Slots: the tier-2 bridge slot
+# beside Breakthrough, and the centre column slot on its other side; both are
+# empty on the Body page. The perks carry no effects of their own: the scripts
+# read who owns them and apply the packages above.
+# The Dash requirement is checked in script, not listed here: the perk screen
+# cannot handle a required perk from another page.
+# Icons are placeholders from the game until our own are packed.
+# The name and description keys are plain text keys (the perk screen passes
+# them to GetLocalizedText); the texts are in BluntLeap_Texts.reds.
+
+# The numbers shown in the descriptions ({float_0}, {float_1}). The scripts
+# rewrite them from the settings.
+NewPerks.BluntLeap_Leap_UI:
+  $type: NewPerkLevelUIData
+  floatValues: [ 50.0 ]
+
+NewPerks.BluntLeap_Stronger_UI:
+  $type: NewPerkLevelUIData
+  floatValues: [ 50.0, 80.0 ]
+
+NewPerks.BluntLeap_Leap:
+  $type: NewPerk
+  enumName: BluntLeap_Leap
+  enumComment: Blunt Leap mod, leap attack for blunt weapons
+  loc_name_key: BluntLeap-Perk-Leap-Name
+  loc_desc_key: BluntLeap-Perk-Leap-Desc
+  perkIcon: UIIcon.Kenjutsu_Area_09_Perk_2
+  category: NewPerks.SimpleNewPerkCategory
+  perkWeaponGroup: NewPerks.BluntsPerkWeaponGroup
+  slot: NewPerks.Inbetween_Right_2
+  requiresPerks:
+    - NewPerks.Body_Right_Perk_2_4
+  tier: NewPerks.AdeptNewPerkTier
+  attribute: NewPerks.BodyAttributeData
+  uiData: NewPerks.BluntLeap_Leap_UI
+  levels:
+    - $type: NewPerkLevelData
+      dataPackage:
+        $type: GameplayLogicPackage
+
+NewPerks.BluntLeap_Stronger:
+  $type: NewPerk
+  enumName: BluntLeap_Stronger
+  enumComment: Blunt Leap mod, stronger fully charged leap
+  loc_name_key: BluntLeap-Perk-Stronger-Name
+  loc_desc_key: BluntLeap-Perk-Stronger-Desc
+  perkIcon: UIIcon.Reflexes_Central_Perk_2_3
+  category: NewPerks.SimpleNewPerkCategory
+  perkWeaponGroup: NewPerks.BluntsPerkWeaponGroup
+  slot: NewPerks.Central_Perk_2_3
+  requiresPerks:
+    - NewPerks.BluntLeap_Leap
+  tier: NewPerks.AdeptNewPerkTier
+  attribute: NewPerks.BodyAttributeData
+  uiData: NewPerks.BluntLeap_Stronger_UI
+  levels:
+    - $type: NewPerkLevelData
+      dataPackage:
+        $type: GameplayLogicPackage
+
+# The one change to a vanilla record: the Body page lists its perks here, so
+# ours are added to the end of that list (other perk mods do the same).
+NewPerks.BodyAttributeData:
+  perks:
+    - !append-once NewPerks.BluntLeap_Leap
+    - !append-once NewPerks.BluntLeap_Stronger

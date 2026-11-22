@@ -1,6 +1,6 @@
 # Blunt Leap: research and design notes
 
-- **Status (2026-11-22):** research only. Nothing is built or installed.
+- **Status (2026-11-22):** the research behind the build. The mod is now written (see `SPEC.md` §9); this file is kept as the record of what the game does. Nothing is installed or tested in game yet.
 - **Goal:** let V do the leap attack with blunt weapons, with Mod Settings options for how it unlocks and an optional charged mode.
 - **Sources:** the game's 2.5 scripts (`CDPR-Modding-Documentation/Cyberpunk-Scripts`), the 2.5 tweak source (`Cyberpunk-Tweaks`) and this PC's compiled `tweakdb_ep1.bin`. Everything below is read from those unless marked **unverified**.
 - **Still open:** the in-game feel test (§6).
@@ -120,7 +120,7 @@ Then hold and release a strong attack at an enemy 3–10 m away. Try a one-hande
 - **Data first:** the effect as a TweakXL `GameplayLogicPackage` that copies the vanilla perk's structure. Scripts only decide when it applies.
 - **Wrap, never replace** (`@wrapMethod`), and call the original first. Touch as few functions as possible: `MeleeLeapDecisions.EnterCondition` (charged gate, blunt range) and `MeleeLeapEvents.OnEnter` (hammer timing) at most.
 - **No edits to vanilla records or `.inkwidget` files.** UI changes are injected at runtime (Codeware), so other UI mods don't clash.
-- **Ownership of a virtual perk** as a quest fact (survives uninstall harmlessly), with refunds on perk reset and attribute respec.
+- **Real perks through Perk Addition Framework** (§3); refunds on perk reset and attribute respec come from the game and the framework. (An earlier idea, a "virtual" perk kept as a quest fact, was dropped.)
 - **Settings** through Mod Settings with safe defaults; the mod works without it.
 - **Check against installed mods:** Better Stealth and RPO touch takedowns, not the leap; nothing installed wraps `MeleeLeapDecisions` today (re-check at build time with `MOD-SHEET.xlsx`, Script hooks).
 - **Verify every assumption in game first** (knowledge base rule), then offline compile, then test.

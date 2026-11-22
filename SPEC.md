@@ -1,8 +1,8 @@
 # Blunt Leap: the agreed design (spec)
 
-- **Status (2026-11-22):** design agreed with the user; building started (step 1). Working names throughout.
+- **Status (2026-11-22):** design agreed with the user; all three build steps are written and compile; **nothing has been tested in game yet**. Working names throughout.
 - **Code:** `github.com/thanapat1273/cyberpunk-blunt-leap-vanilla-progression`
-- **Where things come from:** the user's own words are in [`DESIGN-NOTES.md`](DESIGN-NOTES.md) (decisions D1–D23; kept locally, not in the repository). The game facts are in [`RESEARCH.md`](RESEARCH.md).
+- **Where things come from:** the user's own words are in [`DESIGN-NOTES.md`](DESIGN-NOTES.md) (decisions D1–D27; kept locally, not in the repository). The game facts are in [`RESEARCH.md`](RESEARCH.md).
 - **If this file and the notes disagree, the notes win.** Fix this file.
 
 ---
@@ -130,35 +130,59 @@ One setting: **"Always charged" mode**, **off by default**. Off: any heavy attac
 
 - Which Dash-requirement look to keep (§2), decided in testing.
 - Names for both perks.
-- An icon for Stronger leap.
-- **Blunt leap's icon** (`art/`, built by `tools/make_icon.py`): the game's Flash and Thunderclap icon with only the katana (blade and guard) replaced by a baseball bat; every other pixel is the game's. Katana removal done; the bat is a first draft, awaiting review.
+- An icon for Stronger leap (being made in a separate session).
+- **Blunt leap's icon:** made in a separate session (design notes D22–D25; files in `art/`). Not yet packed into the game: the perk uses a placeholder icon until then.
 
 ## 9. Build steps
 
 | Step | Contents | State |
 |---|---|---|
-| 1 | Leap on all blunt weapons (always allowed), range and hammer timing, distance bonus, charge pool and bar, "Always charged" mode, settings | written; compiles offline against the game and current mod list; **not yet tested in game** |
-| 2 | Stronger leap's effects: longer and faster leap, EMP on crit, launch or stagger with swing direction, hit stop, full-charge feedback | |
-| 3 | The two perks (Perk Addition Framework), unlock rule a–d, refunds, Dash requirement in both looks, the two lines, icons | |
+| 1 | Leap on all blunt weapons, range and hammer timing, distance bonus, charge pool and bar, "Always charged" mode, settings | written; compiles; **not yet tested in game** |
+| 2 | Stronger leap's effects: longer and faster leap, EMP on crit, send flying or stagger with swing direction, hit stop, full-charge feedback, scalable charge bonus | written; compiles; **not yet tested in game** |
+| 3 | The two perks (Perk Addition Framework), unlock rule a–d, refunds, Dash requirement, the two lines, texts | written; compiles; **not yet tested in game**; icons are placeholders |
 
-### Step 1 as built
+Per the user's decision (D27) all three steps are tested together, in one go. The test list is in [`TESTING.md`](TESTING.md).
+
+### What is built
 
 | Part | File | Hooks |
 |---|---|---|
-| Leap ability, air leap, distance bonus, charge pool (data) | `r6/tweaks/BluntLeap/BluntLeap.yaml` | none; 10 new records under `BluntLeap.` |
-| Settings | `r6/scripts/BluntLeap/BluntLeap_Settings.reds` | none |
-| System: applies the packages, prepares the charge | `BluntLeap_System.reds` | none |
-| Range and "Always charged" gate; distance leaped; hammer timing; charge carried through the leap | `BluntLeap_Leap.reds` | wraps `MeleeLeapDecisions.EnterCondition`, `MeleeLeapEvents.OnEnter` |
-| Charge pool in time, bar shown or hidden, charge emptied after the attack | `BluntLeap_Charge.reds` | wraps `CrosshairGameController_Melee.OnPreIntro`, `MeleeChargedHoldEvents.OnEnter`, `MeleeAttackGenericEvents.ConsumeWeaponCharge` |
+| Data: leap ability, air leap, distance bonus, charge pool, impact effector, EMP attack, the two perks | `r6/tweaks/BluntLeap/BluntLeap.yaml` | 20 entries; 19 new records under `BluntLeap.` and `NewPerks.BluntLeap_`, and one append to `NewPerks.BodyAttributeData.perks` |
+| Settings (28) | `BluntLeap_Settings.reds` | none |
+| System: unlock rule, ownership, packages, refunds, charge, full-charge sound and rumble | `BluntLeap_System.reds` | none |
+| Leap: range and "Always charged" gate, long leap, distance leaped, hammer timing, charge carried through the leap | `BluntLeap_Leap.reds` | wraps `MeleeLeapDecisions.EnterCondition`, `MeleeLeapEvents.OnEnter` |
+| Charge: pool in time, bar shown or hidden, bar flash, charge emptied after the attack | `BluntLeap_Charge.reds` | wraps `CrosshairGameController_Melee.OnPreIntro` and `UpdateResourceValue`, `MeleeChargedHoldEvents.OnEnter`, `MeleeAttackGenericEvents.ConsumeWeaponCharge` |
+| Stronger leap's hit: EMP, send flying, stagger, hit stop | `BluntLeap_Impact.reds` | none: an effector class named in a data record |
+| Perks: Dash requirement, refunds, ownership changes, tooltip line | `BluntLeap_Perks.reds` | wraps `PlayerDevelopmentData.IsNewPerkUnlocked`, `CanNewPerkBeBought`, `BuyNewPerk`, `SellNewPerk`, `ForceSellNewPerk`, `ResetNewPerks`; `PerkDisplayTooltipController.UpdateRequirements` |
+| Perk screen: hidden nodes, the two lines, the Dash marker | `BluntLeap_PerkScreen.reds` | wraps `NewPerksScreenLogicController.AttachSlotControllers`, `BuildPerkTree`, `OnNewPerkBought`, `OnNewPerkSold` |
+| Texts (English) | `BluntLeap_Texts.reds` | none: Codeware localization |
 
-**Not in step 1 yet (settings listed in §5):**
+Every wrapper calls the original first. Nothing is replaced. Finisher leaps and non-blunt weapons pass through untouched.
 
-- **Leap range above 15 m.** The game's leap caps at 15 m internally; the setting goes from 5 to 15. Longer leaps come with step 2.
-- **Scalable full-charge damage bonus** and the **full-charge feedback** (sound, flash, rumble, screen pulse): step 2.
-- **Unlock rule, perks, refunds:** step 3. Until then the leap is always allowed while the mod is enabled.
+### How the main pieces work
 
-**Known limits to check in game:**
+- **Who has what.** The system reads the unlock rule once per loaded save. With rule (a) or (b) it asks the game whether the two perks are bought; with (c) or (d) it grants without perks. It then applies or removes four data packages on the player.
+- **The Dash requirement** is scripted, not a listed perk requirement: the perk screen cannot handle a required perk from another page. Without Dash at level 2 the Blunt leap node shows as locked, cannot be bought, and its tooltip says "Requires Dash (Reflexes) at level 2".
+- **Refunds.** 1.5 s after a save loads, and whenever Dash is sold: if the rule uses no perks, or Dash is required and missing, both perks are sold by force and their points come back.
+- **The long leap.** When the game refuses a leap, our wrapper allows it if the weapon is blunt, fully charged, the stronger leap is owned and an enemy is within the longer range. The leap itself repeats the game's own leap steps with that range.
+- **The stronger hit.** A fully charged leap arms a 2 s window. The effector runs on the player's strong melee hits at the `ProcessHitReaction` stage: the crit is known and the enemy has not picked its reaction yet.
+  - EMP on a crit, once per leap: the Yinglong explosion with our own damage value and no damage to V.
+  - Send flying: `ForceKnockdown` plus the game's ragdoll and impulse events, sized like the Gorilla Arms knockout punch. The direction follows the attack record's swing direction.
+  - Otherwise the hit's minimum severity is raised to 2 (stagger).
+- **Texts** come from Codeware's localization; the perk records name them by plain text key.
 
-- **Stun batons and Gorilla Arms** keep their own charge, and the game empties it when a leap starts (as it does for the chainsword on a blade leap). Their leap hit gets no charged bonus. Blunt weapons charged by this mod keep theirs.
-- **"Always charged" and "Charge bar"** take effect the next time the weapon is drawn.
-- Without the Stronger leap perk (step 2 and 3), charging exists only in "Always charged" mode, as §4 says.
+### Not built
+
+- **Screen-edge pulse at full charge** (default Off in §5): no suitable game effect picked yet.
+- **Our own perk icons in game:** needs an atlas packed into an `.archive`. Until then Blunt leap uses Flash and Thunderclap's icon and Stronger leap uses Mad Dash's.
+- **The Dash marker is simple:** the Dash icon with a short line above the node, switchable in settings. The lock and tooltip line are always there.
+- **Perk names:** still the working names.
+
+### Deviations from §1–§6
+
+- **Leap range setting** goes from 5 to 15 m (the game's own range); the stronger leap's extra range is applied on top of it.
+- **Unlock rule changes apply at the next save load**, not only at a game restart.
+- **If Perk Addition Framework is missing**, the mod grants leap and stronger leap without perks and hides the nodes, instead of doing nothing.
+- **Stun batons** get their charge back at leap start, like the blunt weapons charged by this mod. **Gorilla Arms** do not (their charged punch is a separate attack of the game's), so their leap hit gets no charged bonus; the stronger leap's effects still apply to them.
+- **"Always charged", "Charge bar" and the charge bonus** take effect the next time the weapon is drawn.
+- **A hit that kills** gets no extra throw from us: the game (and RPO) handle the body.

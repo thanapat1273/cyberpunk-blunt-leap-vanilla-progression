@@ -1,13 +1,16 @@
-// Blunt Leap: the two hooks on the game's leap.
+// Blunt Leap: the hooks on the game's leap.
 //
-// Both wrap the original and call it first; neither replaces it. Finisher
-// leaps and every weapon that is not blunt pass through untouched (a mod that
+// Both wrappers call the original first; neither replaces it. Finisher leaps
+// and every weapon that is not blunt pass through untouched (a mod that
 // replaced MeleeLeapDecisions broke Gorilla Arms quick finishers this way).
+//
+// Two state-machine parameters carry facts from the decision to the leap
+// (nothing is written to the save):
+//   BluntLeap_Charge  the charge the leap starts with, 0.0 to 1.0. The game
+//                     empties the weapon's charge between the two.
+//   BluntLeap_Long    the leap was allowed by us, beyond the game's range.
 
-// Our own checks on a leap the game has already said yes to. Also stores the
-// charge the leap starts with (in a state-machine parameter, nothing is
-// written to the save): the game empties the weapon's charge between this
-// decision and the leap.
+// Our own checks on a leap the game has already said yes to.
 @addMethod(MeleeLeapDecisions)
 private final const func BluntLeap_Allow(stateContext: ref<StateContext>, const scriptInterface: ref<StateGameScriptInterface>) -> Bool {
   let system: ref<BluntLeapSystem>;
@@ -24,21 +27,11 @@ private final const func BluntLeap_Allow(stateContext: ref<StateContext>, const 
     return true;
   };
   system = BluntLeapSystem.Get(scriptInterface.executionOwner.GetGame());
-  if !IsDefined(system) {
+  if !IsDefined(system) || !system.HasLeap() {
+    // Not ours to judge (the mod is off, or another mod grants this leap).
     return true;
   };
   settings = system.Settings();
-  if !settings.enabled {
-    return true;
-  };
-
-  // Shorter range than the game's own, if the setting asks for it.
-  if settings.leapRange < this.GetStaticFloatParameterDefault("maxDistToTarget", 15.0) - 0.01 {
-    if !IsDefined(DefaultTransition.GetTargetObject(scriptInterface, settings.leapRange, false)) {
-      return false;
-    };
-  };
-
   charge = BluntLeapSystem.ChargeOf(weapon);
 
   // "Always charged": only a full charge leaps. A weapon without any charge
@@ -49,21 +42,139 @@ private final const func BluntLeap_Allow(stateContext: ref<StateContext>, const 
     };
   };
 
+  // Shorter range than the game's own, if the setting asks for it. A fully
+  // charged stronger leap is not held back by it.
+  if settings.leapRange < this.GetStaticFloatParameterDefault("maxDistToTarget", 15.0) - 0.01 && !(system.HasStrongerLeap() && charge >= 1.0) {
+    if !IsDefined(DefaultTransition.GetTargetObject(scriptInterface, settings.leapRange, false)) {
+      return false;
+    };
+  };
+
   stateContext.SetPermanentFloatParameter(n"BluntLeap_Charge", charge, true);
+  stateContext.SetPermanentBoolParameter(n"BluntLeap_Long", false, true);
+  return true;
+}
+
+// The game said no. With the stronger leap, a fully charged blunt weapon may
+// still leap to an enemy beyond the game's range. Every other condition is
+// the game's own, repeated here.
+@addMethod(MeleeLeapDecisions)
+private final const func BluntLeap_AllowLong(stateContext: ref<StateContext>, const scriptInterface: ref<StateGameScriptInterface>) -> Bool {
+  let system: ref<BluntLeapSystem>;
+  let weapon: ref<WeaponObject>;
+  let range: Float;
+  let gameRange: Float;
+
+  weapon = MeleeTransition.GetWeaponObject(scriptInterface);
+  if !IsDefined(weapon) || !WeaponObject.IsBlunt(weapon.GetItemID()) {
+    return false;
+  };
+  system = BluntLeapSystem.Get(scriptInterface.executionOwner.GetGame());
+  if !IsDefined(system) || !system.HasStrongerLeap() {
+    return false;
+  };
+  if !this.IsInMeleeState(stateContext, n"meleeChargedHold") || !MeleeTransition.MeleeAttackReleased(scriptInterface) {
+    return false;
+  };
+  if this.m_driverCombatListener.IsMounted() {
+    return false;
+  };
+  if EntityID.IsDefined(scriptInterface.localBlackboard.GetEntityID(GetAllBlackboardDefs().PlayerStateMachine.FinisherTarget)) {
+    return false;
+  };
+  if !scriptInterface.HasStatFlag(gamedataStatType.CanMeleeLeap) {
+    return false;
+  };
+  if !scriptInterface.IsOnGround() && !scriptInterface.HasStatFlag(gamedataStatType.CanMeleeLeapInAir) {
+    return false;
+  };
+  if BluntLeapSystem.ChargeOf(weapon) < 1.0 {
+    return false;
+  };
+  gameRange = this.GetStaticFloatParameterDefault("maxDistToTarget", 15.0);
+  range = system.StrongRange(MinF(system.Settings().leapRange, gameRange));
+  if range <= gameRange {
+    return false;
+  };
+  if !IsDefined(DefaultTransition.GetTargetObject(scriptInterface, range, false)) {
+    return false;
+  };
+  if IsDefined(DefaultTransition.GetTargetObject(scriptInterface, this.GetStaticFloatParameterDefault("minDistToTarget", 2.0), false)) {
+    return false;
+  };
+  stateContext.SetPermanentFloatParameter(n"BluntLeap_Charge", 1.0, true);
+  stateContext.SetPermanentBoolParameter(n"BluntLeap_Long", true, true);
   return true;
 }
 
 @wrapMethod(MeleeLeapDecisions)
 protected const func EnterCondition(stateContext: ref<StateContext>, const scriptInterface: ref<StateGameScriptInterface>) -> Bool {
-  if !wrappedMethod(stateContext, scriptInterface) {
+  if wrappedMethod(stateContext, scriptInterface) {
+    if this.BluntLeap_Allow(stateContext, scriptInterface) {
+      return true;
+    };
+    // The original marked the leap as started just before it said yes.
+    stateContext.SetPermanentBoolParameter(n"IsInMeleeLeapState", false, true);
     return false;
   };
-  if this.BluntLeap_Allow(stateContext, scriptInterface) {
+  if this.BluntLeap_AllowLong(stateContext, scriptInterface) {
+    stateContext.SetPermanentBoolParameter(n"IsInMeleeLeapState", true, true);
     return true;
   };
-  // The original marked the leap as started just before it said yes.
-  stateContext.SetPermanentBoolParameter(n"IsInMeleeLeapState", false, true);
   return false;
+}
+
+// The game's own leap (MeleeLeapEvents.LeapToTarget) with a longer range. The
+// travel time keeps the game's limits, so a longer leap is a faster one.
+@addMethod(MeleeLeapEvents)
+private final func BluntLeap_LongLeap(stateContext: ref<StateContext>, scriptInterface: ref<StateGameScriptInterface>, range: Float) -> Bool {
+  let owner: ref<GameObject> = scriptInterface.executionOwner;
+  let target: ref<GameObject>;
+  let targetPuppet: ref<ScriptedPuppet>;
+  let toTarget: Vector4;
+  let targetPos: Vector4;
+  let angles: EulerAngles;
+  let distance: Float;
+  let minDistance: Float;
+  let duration: Float;
+  let rotationDuration: Float;
+
+  target = DefaultTransition.GetTargetObject(scriptInterface, range, false, this.GetStaticFloatParameterDefault("leapTargetWithinAngle", 10.0));
+  if !IsDefined(target) {
+    return false;
+  };
+  targetPuppet = target as ScriptedPuppet;
+  if IsDefined(targetPuppet) {
+    targetPuppet.SetFinisherSoundPlayed(false);
+  };
+  toTarget = target.GetWorldPosition() - owner.GetWorldPosition();
+  angles = Vector4.ToRotation(toTarget);
+  if -angles.Pitch > this.GetStaticFloatParameterDefault("leapMaxPitch", 45.0) {
+    return false;
+  };
+  distance = Vector4.Length(toTarget);
+  minDistance = this.GetStaticFloatParameterDefault("minDistToTarget", 2.0);
+  duration = LerpF((distance - minDistance) / (range - minDistance), this.GetStaticFloatParameterDefault("minAdjustmentDuration", 0.25), this.GetStaticFloatParameterDefault("maxAdjustmentDuration", 0.5), true);
+  stateContext.SetConditionFloatParameter(n"LeapExitTime", duration - this.GetStaticFloatParameterDefault("attackStartupDuration", 0.3), true);
+
+  rotationDuration = this.GetStaticFloatParameterDefault("rotationDuration", -1.0);
+  this.m_isTargetKnockedOver = (target.GetWorldPosition().Z - owner.GetWorldPosition().Z) < 0.2 && StatusEffectSystem.ObjectHasStatusEffectOfType(target, gamedataStatusEffectType.Knockdown);
+  this.GetSlotTransformToTarget(scriptInterface, target, duration, this.m_isTargetKnockedOver, targetPos, rotationDuration);
+  rotationDuration = this.GetStaticFloatParameterDefault("rotationDuration", -1.0);
+  if !SpatialQueriesHelper.IsTargetReachable(owner, target, targetPos, false, this.m_enableVaultFromLeapAttack) {
+    return false;
+  };
+
+  scriptInterface.localBlackboard.SetBool(GetAllBlackboardDefs().PlayerStateMachine.MeleeLeap, true);
+  if this.m_enableVaultFromLeapAttack {
+    stateContext.SetPermanentBoolParameter(n"enableVaultFromleapAttack", true, true);
+  };
+  if this.m_isTargetKnockedOver {
+    stateContext.SetPermanentBoolParameter(n"crouchAfterLeaping", true, true);
+  };
+  this.AdjustPlayerPosition(stateContext, scriptInterface, target, duration, this.GetStaticFloatParameterDefault("distanceRadiusToTarget", 0.9), rotationDuration, n"", true, targetPos);
+  PlayerStaminaHelpers.ModifyStaminaBasedOnLeapAttackDistance(owner as PlayerPuppet, scriptInterface.IsOnGround(), distance, range);
+  return true;
 }
 
 @wrapMethod(MeleeLeapEvents)
@@ -72,21 +183,23 @@ public func OnEnter(stateContext: ref<StateContext>, scriptInterface: ref<StateG
   let system: ref<BluntLeapSystem>;
   let settings: ref<BluntLeapSettings>;
   let stored: StateResultFloat;
+  let long: StateResultBool;
   let exitTime: StateResultFloat;
   let target: ref<GameObject>;
   let perkData: ref<IBlackboard>;
   let owner: ref<GameObject>;
+  let range: Float;
+  let started: Bool;
+  let distance: Float;
 
   wrappedMethod(stateContext, scriptInterface);
 
   stored = stateContext.GetPermanentFloatParameter(n"BluntLeap_Charge");
+  long = stateContext.GetPermanentBoolParameter(n"BluntLeap_Long");
   stateContext.SetPermanentFloatParameter(n"BluntLeap_Charge", 0.0, true);
+  stateContext.SetPermanentBoolParameter(n"BluntLeap_Long", false, true);
 
   if this.m_isFinisher {
-    return;
-  };
-  // The original sets this only when the leap really started.
-  if !scriptInterface.localBlackboard.GetBool(GetAllBlackboardDefs().PlayerStateMachine.MeleeLeap) {
     return;
   };
   weapon = MeleeTransition.GetWeaponObject(scriptInterface);
@@ -95,20 +208,30 @@ public func OnEnter(stateContext: ref<StateContext>, scriptInterface: ref<StateG
   };
   owner = scriptInterface.executionOwner;
   system = BluntLeapSystem.Get(owner.GetGame());
-  if !IsDefined(system) {
+  if !IsDefined(system) || !system.HasLeap() {
     return;
   };
   settings = system.Settings();
-  if !settings.enabled {
+
+  // The original sets this only when the leap really started.
+  started = scriptInterface.localBlackboard.GetBool(GetAllBlackboardDefs().PlayerStateMachine.MeleeLeap);
+  range = this.GetStaticFloatParameterDefault("maxDistToTarget", 15.0);
+  if !started && long.valid && long.value && system.HasStrongerLeap() {
+    range = system.StrongRange(MinF(settings.leapRange, range));
+    started = this.BluntLeap_LongLeap(stateContext, scriptInterface, range);
+    system.Log("Long leap, range " + FloatToStringPrec(range, 1) + " m, started=" + ToString(started));
+  };
+  if !started {
     return;
   };
 
   // 1. Distance leaped, for the distance damage bonus. The game records it
   //    for blades only. The player has not moved yet at this point.
-  target = DefaultTransition.GetTargetObject(scriptInterface, this.GetStaticFloatParameterDefault("maxDistToTarget", 15.0), false, this.GetStaticFloatParameterDefault("leapTargetWithinAngle", 10.0));
+  target = DefaultTransition.GetTargetObject(scriptInterface, range, false, this.GetStaticFloatParameterDefault("leapTargetWithinAngle", 10.0));
   perkData = GameInstance.GetBlackboardSystem(owner.GetGame()).Get(GetAllBlackboardDefs().PlayerPerkData);
   if IsDefined(target) && IsDefined(perkData) {
-    perkData.SetFloat(GetAllBlackboardDefs().PlayerPerkData.LeapedDistance, Vector4.Distance(target.GetWorldPosition(), owner.GetWorldPosition()), true);
+    distance = Vector4.Distance(target.GetWorldPosition(), owner.GetWorldPosition());
+    perkData.SetFloat(GetAllBlackboardDefs().PlayerPerkData.LeapedDistance, distance, true);
   };
 
   // 2. Hammers swing slower, so they leave the leap for the swing earlier.
@@ -119,9 +242,22 @@ public func OnEnter(stateContext: ref<StateContext>, scriptInterface: ref<StateG
     };
   };
 
+  if !stored.valid || stored.value <= 0.0 {
+    system.Log("Leap, " + FloatToStringPrec(distance, 1) + " m, no charge");
+    return;
+  };
+
   // 3. Give the weapon back the charge the leap started with, so the hit
-  //    gets the game's charged-attack bonus. Only for the pool we added.
-  if stored.valid && stored.value > 0.0 && system.OwnsChargeOf(weapon) {
+  //    gets the game's charged-attack bonus. Gorilla Arms are left alone:
+  //    their charged punch is a separate attack of the game's.
+  if system.OwnsChargeOf(weapon) || NotEquals(WeaponObject.GetWeaponType(weapon.GetItemID()), gamedataItemType.Cyb_StrongArms) {
     GameInstance.GetStatPoolsSystem(owner.GetGame()).RequestSettingStatPoolValue(Cast<StatsObjectID>(weapon.GetEntityID()), gamedataStatPoolType.WeaponCharge, stored.value * 100.0, null, true);
   };
+
+  // 4. A fully charged leap with the stronger leap: its hit gets the extra
+  //    effects. Armed for the flight plus the swing.
+  if system.HasStrongerLeap() && stored.value >= 1.0 {
+    system.ArmStrongLeap(2.0);
+  };
+  system.Log("Leap, " + FloatToStringPrec(distance, 1) + " m, charge " + FloatToStringPrec(stored.value * 100.0, 0) + "%");
 }

@@ -8,22 +8,22 @@ The goal is a mod that feels like part of the game: two new perks in the Body tr
 
 ## Status
 
-Work in progress, built in three steps. **Step 1 is written and compiles; it has not been tested in game yet.**
+Work in progress. **All three build steps are written and compile against the game. Nothing has been tested in game yet.** The first test covers everything at once: see [TESTING.md](TESTING.md).
 
 | Step | Contents | State |
 |---|---|---|
-| 1 | Leap with every blunt weapon (always allowed), leap range, hammer timing, distance damage bonus, charge for blunt weapons with the native charge bar, "Always charged" mode, settings | written, compiles, untested in game |
-| 2 | Stronger leap on a full charge: longer and faster leap, EMP on a crit, send the enemy flying or stagger them, full-charge feedback | not started |
-| 3 | The two perks in the Body tree, unlock rules, automatic refunds, perk icons | not started |
+| 1 | Leap with every blunt weapon, leap range, hammer timing, distance damage bonus, charge for blunt weapons with the native charge bar, "Always charged" mode | written, compiles, untested in game |
+| 2 | Stronger leap on a full charge: longer and faster leap, EMP on a crit, send the enemy flying or stagger them, hit stop, full-charge sound, flash and rumble | written, compiles, untested in game |
+| 3 | The two perks in the Body tree, four unlock rules, the Dash requirement, automatic refunds, lines on the perk screen | written, compiles, untested in game; perk icons are placeholders |
 
 The full design is in [SPEC.md](SPEC.md). The game facts behind it are in [RESEARCH.md](RESEARCH.md).
 
 ## Requirements
 
 - Cyberpunk 2077, patch 2.x (compile-checked against the current patch)
-- RED4ext, redscript, TweakXL
+- RED4ext, redscript, TweakXL, Codeware
+- Perk Addition Framework, for the two perks. Without it the mod grants the leap and the stronger leap without perks.
 - Mod Settings (optional: without it the mod runs on its defaults)
-- Later steps will also need Codeware and Perk Addition Framework
 
 ## Install (manual)
 
@@ -32,20 +32,23 @@ Copy the `r6` folder into the game folder. That adds two folders and changes no 
 - `r6/scripts/BluntLeap/`
 - `r6/tweaks/BluntLeap/`
 
-To remove the mod, delete those two folders.
+To remove the mod: refund the two perks first (or switch the unlock rule to one without perks and load the save once), then delete those two folders.
 
 ## How it works
 
 - The game decides a leap from one flag on the player, `CanMeleeLeap`. The blade perk grants it while a blade is held. This mod grants it while a blunt weapon is held, with the same kind of data package the perk uses.
 - The scripts only wrap game functions and always call the original first. Nothing is replaced, no vanilla record is edited, and finisher leaps pass through untouched.
 - Charging uses the game charge pool type, so the game fills it, draws its own bar and applies its own charged-damage rule.
+- The two perks are real perks: Perk Addition Framework adds their IDs to the game, so buying, selling, respec and saving are the game's own. The one vanilla record touched is the Body page's perk list, which gets the two perks appended.
+- The stronger leap's hit effects run from a small effector class named in a data record, at the stage where the crit is known and the enemy has not reacted yet. Sending an enemy flying uses the same two events as the Gorilla Arms knockout punch.
 
 ## Layout
 
 | Path | What |
 |---|---|
-| `r6/scripts/BluntLeap/` | redscript: settings, the system, the leap hooks, the charge hooks |
-| `r6/tweaks/BluntLeap/` | TweakXL records: the leap ability, the distance bonus, the charge pool |
+| `r6/scripts/BluntLeap/` | redscript: settings, the system, leap, charge, hit effects, perks, perk screen, texts |
+| `r6/tweaks/BluntLeap/` | TweakXL records: the leap ability, the distance bonus, the charge pool, the hit effector, the EMP, the two perks |
+| `TESTING.md` | the list for the first in-game test |
 | `art/` | the perk icon (PNG at the game size, SVG, and a preview) |
 | `tools/compile_check.sh` | compiles the scripts against a game install in a scratch folder |
 | `tools/make_icon.py` | builds the icon from the game icon it is based on |
