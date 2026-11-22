@@ -4,8 +4,8 @@ Everything below is untested. The scripts compile against the game; nothing has 
 
 ## Before starting
 
-1. **Perk Addition Framework** (Nexus 22758) installed. Without it the mod still works, but with no perks: leap and stronger leap are simply granted.
-2. **Blunt Leap** installed: `r6/scripts/BluntLeap/`, `r6/tweaks/BluntLeap/` and `archive/pc/mod/BluntLeap.archive`.
+1. **Perk Addition Framework** (Nexus 22758): installed 2026-11-22, version 1.0.1.
+2. **Blunt Leap**: installed 2026-11-22 (`r6/scripts/BluntLeap/`, `r6/tweaks/BluntLeap/`, `archive/pc/mod/BluntLeap.archive`).
 3. In Mod Settings, Blunt Leap, General: turn **Write a log** on for this test. Lines start with `[Blunt Leap]` and go to the CET game log (`bin/x64/plugins/cyber_engine_tweaks/gamelog.log`, also shown in the CET console).
 4. Have at hand: a one-handed blunt weapon, a bat, a hammer, a stun baton, Gorilla Arms if you use them, and a save with spare perk points, Body 9 and Reflexes 9.
 5. **Make a manual save first.** Perk IDs added by the framework are a known risk (test 6).

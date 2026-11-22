@@ -4,7 +4,10 @@
 # Compiles the game scripts, every installed script mod and this mod together,
 # in a scratch folder. Nothing is written to the game folder.
 #
-#   tools/compile_check.sh "<game folder>" [work folder]
+#   tools/compile_check.sh "<game folder>" [work folder] [extra scripts folder]
+#
+# The extra scripts folder (optional) is copied in as well: use it to test
+# together with a script mod that is not installed yet.
 #
 # Exit code 0 and no WARN or ERROR lines means the scripts compile cleanly
 # against the current game and mod list.
@@ -12,7 +15,7 @@ set -euo pipefail
 
 GAME="${1:-${CP2077_DIR:-}}"
 if [ -z "$GAME" ] || [ ! -f "$GAME/engine/tools/scc.exe" ]; then
-  echo "usage: compile_check.sh <game folder> [work folder]" >&2
+  echo "usage: compile_check.sh <game folder> [work folder] [extra scripts folder]" >&2
   exit 2
 fi
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
@@ -25,6 +28,9 @@ cp -r "$GAME/r6/scripts/." "$WORK/r6/scripts/"
 # Always test the working copy, not an installed one.
 rm -rf "$WORK/r6/scripts/BluntLeap"
 cp -r "$HERE/r6/scripts/BluntLeap" "$WORK/r6/scripts/"
+if [ -n "${3:-}" ]; then
+  cp -r "$3/." "$WORK/r6/scripts/"
+fi
 
 : > "$WORK/paths.txt"
 for d in ArchiveXL/Scripts Codeware/Scripts TweakXL/Scripts mod_settings; do
