@@ -257,6 +257,17 @@ Every wrapper calls the original first. Nothing is replaced. Finisher leaps and 
 - **Quality:** encoded back to frames, the videos match the cut frames at about 39.5 dB PSNR. They are as sharp as the game's own perk videos, which are also 700 x 394. On a 1440p screen the card shows the video about 500 px wide, so it is shown smaller than it is.
 - **Built by:** `tools/make_videos.py` (ffmpeg cuts and scales; RAD encodes) into `art/video/`. `tools/pack_icons.sh` packs them uncompressed into the archive under `bluntleap\movies\`. The perk records name them in `binkPath`.
 
+### Charge speed under Sandevistan (2026-11-22, D43)
+
+- **What happens in the game:** a held melee charge fills the weapon's `WeaponCharge` pool at 100 / `ChargeTime` points per second (`MeleeChargedHoldEvents.OnEnter`, `StartPool`). The pool fills in world time, so Sandevistan slows it. This is true of every melee charge in the game (katanas, blunt, Gorilla Arms, Mantis Blades, stun baton), so ours behaves like the game's.
+- **The game's only catch-up** is for gun fire rate (`CalcCycleTimeDeltaFactor`): under Sandevistan, 1 / dilation times 0.5 to 0.9 (`ProportionalClampF(1.0, 2.0, cycleTime, 0.5, 0.9)`).
+- **Setting** (Charge group): "Charge speed under Sandevistan", default **Vanilla**.
+  - Vanilla: unchanged.
+  - Partial: the game's gun catch-up, with the charge time as the cycle time. For our charge times (0.5 to 1.2 s) that is about half of the slow-down made up.
+  - Full: 1 / dilation, the same real time as without Sandevistan.
+- **How:** the hold state has no update of its own and uses the empty `MeleeEventsTransition.OnUpdate`. A wrapper on it acts only for `MeleeChargedHoldEvents` and only for a weapon whose charge is ours. Each frame it works out the wanted fill rate. Only when that differs from the pool's current rate does it change the pool's Regeneration modifier (`GetModifier`, `valuePerSec`, `RequestSettingModifier`). The charge built up so far is kept, so Sandevistan starting or ending mid-charge only changes the speed.
+- Weapons with a charge of their own (stun batons, Gorilla Arms, blades) are not touched.
+
 ### Not built
 
 - **Screen-edge pulse at full charge** (default Off in §5): no suitable game effect picked yet.

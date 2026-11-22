@@ -50,6 +50,8 @@ public class BluntLeapSystem extends ScriptableSystem {
   private let m_chargeMaxMods: array<ref<gameStatModifierData>>;
   private let m_chargeBonusMods: array<ref<gameStatModifierData>>;
   private let m_chargeListeners: array<ref<BluntLeapChargeListener>>;
+  // The fill rate (charge points per second) the weapon's pool has now.
+  private let m_chargeRates: array<Float>;
 
   // A stronger leap is on its way: its hit gets the extra effects until this time.
   private let m_strongUntil: Float;
@@ -456,6 +458,7 @@ public class BluntLeapSystem extends ScriptableSystem {
     ArrayClear(this.m_chargeMaxMods);
     ArrayClear(this.m_chargeBonusMods);
     ArrayClear(this.m_chargeListeners);
+    ArrayClear(this.m_chargeRates);
   }
 
   // Gives the blunt weapon in hand our charge pool and charge time when the
@@ -531,6 +534,7 @@ public class BluntLeapSystem extends ScriptableSystem {
       ArrayPush(this.m_chargeMaxMods, maxMod);
       ArrayPush(this.m_chargeBonusMods, bonusMod);
       ArrayPush(this.m_chargeListeners, listener);
+      ArrayPush(this.m_chargeRates, 0.0);
       this.Log("Charge added to the weapon in hand, time " + FloatToStringPrec(time, 2) + " s");
       return true;
     };
@@ -590,10 +594,91 @@ public class BluntLeapSystem extends ScriptableSystem {
       ArrayErase(this.m_chargeMaxMods, index);
       ArrayErase(this.m_chargeBonusMods, index);
       ArrayErase(this.m_chargeListeners, index);
+      ArrayErase(this.m_chargeRates, index);
     };
     if pools.IsStatPoolAdded(statsId, gamedataStatPoolType.WeaponCharge) {
       pools.RequestRemovingStatPool(statsId, gamedataStatPoolType.WeaponCharge);
     };
+  }
+
+  // The fill rate the game gives a charge: 100 points over the weapon's
+  // ChargeTime (MeleeChargedHoldEvents.GetChargeValuePerSec). 0 if none.
+  private final static func BaseChargeRate(weapon: wref<WeaponObject>) -> Float {
+    let chargeTime: Float = GameInstance.GetStatsSystem(weapon.GetGame()).GetStatValue(Cast<StatsObjectID>(weapon.GetEntityID()), gamedataStatType.ChargeTime);
+    if chargeTime <= 0.0 {
+      return 0.0;
+    };
+    return 100.0 / chargeTime;
+  }
+
+  // A hold has just started: the game set the pool's fill rate to the base
+  // rate (StartPool).
+  public final func NoteChargeStarted(weapon: wref<WeaponObject>) -> Void {
+    let index: Int32;
+    if !IsDefined(weapon) {
+      return;
+    };
+    index = this.ChargeIndex(weapon.GetEntityID());
+    if index >= 0 {
+      this.m_chargeRates[index] = BluntLeapSystem.BaseChargeRate(weapon);
+    };
+  }
+
+  // Every frame of a hold. The charge fills in world time, so Sandevistan
+  // slows it, as it slows every melee charge in the game. The setting can
+  // make ours catch up:
+  //   Partial: as the game does for gun fire rate (CalcCycleTimeDeltaFactor):
+  //            1 / dilation, times 0.5 to 0.9 by the charge time;
+  //   Full:    1 / dilation, the same real time as without Sandevistan.
+  // The pool's fill rate is only changed when it should differ from what it
+  // is, and the charge already built up is kept, so Sandevistan starting or
+  // ending mid-charge only changes the speed.
+  public final func UpdateChargeRate(weapon: wref<WeaponObject>, time: ref<TimeSystem>) -> Void {
+    let mode: BluntLeapSandevistanCharge = this.Settings().sandevistanCharge;
+    let index: Int32;
+    let base: Float;
+    let rate: Float;
+    let dilation: Float;
+    let pools: ref<StatPoolsSystem>;
+    let statsId: StatsObjectID;
+    let regen: StatPoolModifier;
+    if !IsDefined(weapon) || !IsDefined(time) {
+      return;
+    };
+    index = this.ChargeIndex(weapon.GetEntityID());
+    if index < 0 {
+      return;
+    };
+    base = BluntLeapSystem.BaseChargeRate(weapon);
+    if base <= 0.0 {
+      return;
+    };
+    rate = base;
+    if NotEquals(mode, BluntLeapSandevistanCharge.Vanilla) && time.IsTimeDilationActive(TimeDilationHelper.GetSandevistanKey()) {
+      dilation = time.GetActiveTimeDilation();
+      if dilation > 0.0 && dilation < 1.0 {
+        rate = base / dilation;
+        if Equals(mode, BluntLeapSandevistanCharge.Partial) {
+          rate *= ProportionalClampF(1.0, 2.0, 100.0 / base, 0.5, 0.9);
+        };
+      };
+    };
+    if AbsF(rate - this.m_chargeRates[index]) < 0.01 {
+      return;
+    };
+    if !this.OwnsChargeOf(weapon) {
+      return;
+    };
+    pools = GameInstance.GetStatPoolsSystem(weapon.GetGame());
+    statsId = Cast<StatsObjectID>(weapon.GetEntityID());
+    pools.GetModifier(statsId, gamedataStatPoolType.WeaponCharge, gameStatPoolModificationTypes.Regeneration, regen);
+    if !regen.enabled {
+      return;
+    };
+    regen.valuePerSec = rate;
+    pools.RequestSettingModifier(statsId, gamedataStatPoolType.WeaponCharge, gameStatPoolModificationTypes.Regeneration, regen);
+    this.m_chargeRates[index] = rate;
+    this.Log("Charge rate " + FloatToStringPrec(rate, 1) + " per s (base " + FloatToStringPrec(base, 1) + ", time dilation " + FloatToStringPrec(dilation, 2) + ")");
   }
 
   // A charge we added has just become full: sound and rumble. The bar's

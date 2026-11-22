@@ -17,7 +17,7 @@ If the game stops at launch with a script error, send me `r6/logs/redscript_rCUR
 | # | Do | Expect |
 |---|---|---|
 | 1.1 | Start the game, load a save | No error pop-up |
-| 1.2 | Open Mod Settings | "Blunt Leap" with four groups (General, Leap, Charge, Stronger leap) and 28 settings |
+| 1.2 | Open Mod Settings | "Blunt Leap" with four groups (General, Leap, Charge, Stronger leap) and 29 settings |
 | 1.3 | Open the Body perk page | Two new nodes on the row of Breakthrough: one right beside it (Blunt Leap), one further left (Stronger Leap). Two short lines join the three. A small Dash marker sits above Blunt Leap |
 | 1.4 | Hover both nodes | Name, description with numbers, no missing-text keys |
 | 1.5 | Look at both new nodes | Blunt Leap shows the bat icon, Stronger Leap the charged fist; both sharp and the same size as their neighbours |
@@ -114,6 +114,19 @@ This build fixes the four findings from the first play test and adds the round 3
 | 8.6 | Mod Settings | Groups named "Battering Ram (the leap)" and "Thunder Breaker (full charge)" |
 | 8.7 | Hover Battering Ram and Thunder Breaker | Each card plays its video (the leap; the charged hit, throw and EMP) and loops it. The videos are Bink 1: if the space stays black, tell me |
 | 8.8 | Read Thunder Breaker's description | "...send the enemy flying (80% chance, 30% against heavy enemies) or stagger them otherwise." |
+
+## 9. Charge speed under Sandevistan (2026-11-22)
+
+Setting: Mod Settings, Blunt Leap, Charge, "Charge speed under Sandevistan" (default Vanilla). Use a bat; its charge takes about 1 s without Sandevistan. With "Write a log" on, each change of speed writes a "Charge rate" line.
+
+| # | Do | Expect |
+|---|---|---|
+| 9.1 | Vanilla. Charge without, then with Sandevistan | With Sandevistan the bar fills much more slowly (as every melee charge in the game) |
+| 9.2 | Partial. Same | With Sandevistan it fills faster than Vanilla, but still slower than without Sandevistan |
+| 9.3 | Full. Same | About 1 s either way |
+| 9.4 | Full. Start holding, then start Sandevistan halfway | The bar keeps what it had and goes on at the normal speed; the same when Sandevistan ends mid-charge |
+| 9.5 | Full, Sandevistan on. A stun baton, a katana | Their own charges are unchanged (they still slow down) |
+| 9.6 | Full, Sandevistan on. Charge to full and leap | Sound, flash and Thunder Breaker work as without Sandevistan |
 
 ## Things to tell me
 
