@@ -133,7 +133,7 @@ public func OnUpdate(timeDelta: Float, stateContext: ref<StateContext>, scriptIn
   };
   system = BluntLeapSystem.Get(weapon.GetGame());
   if IsDefined(system) {
-    system.UpdateChargeRate(weapon, scriptInterface.GetTimeSystem());
+    system.UpdateChargeRate(weapon, scriptInterface.GetTimeSystem(), "hold update");
   };
 }
 

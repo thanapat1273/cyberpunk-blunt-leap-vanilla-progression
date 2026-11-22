@@ -267,6 +267,10 @@ Every wrapper calls the original first. Nothing is replaced. Finisher leaps and 
   - Full: 1 / dilation, the same real time as without Sandevistan.
 - **How:** the hold state has no update of its own and uses the empty `MeleeEventsTransition.OnUpdate`. A wrapper on it acts only for `MeleeChargedHoldEvents` and only for a weapon whose charge is ours. Each frame it works out the wanted fill rate. Only when that differs from the pool's current rate does it change the pool's Regeneration modifier (`GetModifier`, `valuePerSec`, `RequestSettingModifier`). The charge built up so far is kept, so Sandevistan starting or ending mid-charge only changes the speed.
 - Weapons with a charge of their own (stun batons, Gorilla Arms, blades) are not touched.
+- **First test (2026-11-22): no effect.** All three values felt the same, and the log had no "Charge rate" line, so the rate was never changed. Not known yet which step failed. The second build:
+  - reads the slow-down more robustly. Sandevistan exempts the player from it (`SetIgnoreTimeDilationOnLocalPlayerZero`), so the time system's figure may show none. If so, it uses the player's Sandevistan time scale (`TimeDilationSandevistanTimeScale`, the figure `SandevistanEvents` sets). It counts Sandevistan as on by its time reason, or by its status effect while any slow-down is on;
+  - has a second way in: the charge's own pool listener, each time the charge grows, in case the hold state's update is never called;
+  - with "Write a log" on, writes what it sees once per hold and whenever the slow-down changes ("Charge (hold update)" or "Charge (charge grew)").
 
 ### Not built
 

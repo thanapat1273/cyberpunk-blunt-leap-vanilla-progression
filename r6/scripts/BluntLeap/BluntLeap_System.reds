@@ -18,13 +18,23 @@ public class BluntLeapValidateCallback extends DelayCallback {
   }
 }
 
-// Tells the system the moment a charge we added becomes full.
+// Watches a charge we added. Tells the system the moment it becomes full,
+// and, while it fills, lets the system match its speed to Sandevistan (a
+// second way in, besides the hold state's update).
 public class BluntLeapChargeListener extends ScriptStatPoolsListener {
   public let system: wref<BluntLeapSystem>;
+  public let weapon: wref<WeaponObject>;
 
   public func OnStatPoolValueChanged(oldValue: Float, newValue: Float, percToPoints: Float) -> Void {
-    if newValue >= 99.9 && oldValue < 99.9 && IsDefined(this.system) {
+    if !IsDefined(this.system) {
+      return;
+    };
+    if newValue >= 99.9 && oldValue < 99.9 {
       this.system.OnFullCharge();
+      return;
+    };
+    if newValue > oldValue && newValue < 99.9 && IsDefined(this.weapon) {
+      this.system.UpdateChargeRate(this.weapon, GameInstance.GetTimeSystem(this.weapon.GetGame()), "charge grew");
     };
   }
 }
@@ -52,6 +62,10 @@ public class BluntLeapSystem extends ScriptableSystem {
   private let m_chargeListeners: array<ref<BluntLeapChargeListener>>;
   // The fill rate (charge points per second) the weapon's pool has now.
   private let m_chargeRates: array<Float>;
+  // For the log: the slow-down last written for the current hold (-1 = none
+  // yet; set when a hold starts).
+  private let m_loggedDilation: Float;
+  private let m_loggedBlocked: Bool;
 
   // A stronger leap is on its way: its hit gets the extra effects until this time.
   private let m_strongUntil: Float;
@@ -526,6 +540,7 @@ public class BluntLeapSystem extends ScriptableSystem {
       };
       listener = new BluntLeapChargeListener();
       listener.system = this;
+      listener.weapon = weapon;
       pools.RequestRegisteringListener(statsId, gamedataStatPoolType.WeaponCharge, listener);
       ArrayPush(this.m_chargeIds, id);
       ArrayPush(this.m_chargeTimes, time);
@@ -622,23 +637,61 @@ public class BluntLeapSystem extends ScriptableSystem {
     if index >= 0 {
       this.m_chargeRates[index] = BluntLeapSystem.BaseChargeRate(weapon);
     };
+    this.m_loggedDilation = -1.0;
+    this.m_loggedBlocked = false;
   }
 
-  // Every frame of a hold. The charge fills in world time, so Sandevistan
-  // slows it, as it slows every melee charge in the game. The setting can
-  // make ours catch up:
+  // How slowly Sandevistan makes the world run: 0 to 1, where 1 means it is
+  // off. Sandevistan slows the world under the time reason "sandevistan" and
+  // exempts the player (SandevistanEvents, SetTimeDilationGlobal). The time
+  // system's own figure is used first. If that shows no slow-down while
+  // Sandevistan is on (with the player exempt it may report the player's
+  // time), the figure the game sets is used: the player's Sandevistan time
+  // scale (TimeDilationSandevistanTimeScale). The report is for the log.
+  private final func SandevistanDilation(time: ref<TimeSystem>, out report: String) -> Float {
+    let player: ref<PlayerPuppet> = GetPlayer(this.GetGameInstance());
+    let keyOn: Bool = time.IsTimeDilationActive(TimeDilationHelper.GetSandevistanKey());
+    let anyOn: Bool = time.IsTimeDilationActive();
+    let effectOn: Bool = false;
+    let active: Float = time.GetActiveTimeDilation();
+    let scale: Float = 0.0;
+    let dilation: Float = 1.0;
+    if IsDefined(player) {
+      effectOn = StatusEffectSystem.ObjectHasStatusEffectOfType(player, gamedataStatusEffectType.Sandevistan);
+      scale = GameInstance.GetStatsSystem(this.GetGameInstance()).GetStatValue(Cast<StatsObjectID>(player.GetEntityID()), gamedataStatType.TimeDilationSandevistanTimeScale);
+    };
+    if keyOn || (effectOn && anyOn) {
+      if active > 0.0 && active < 1.0 {
+        dilation = active;
+      } else {
+        if scale > 0.0 && scale < 1.0 {
+          dilation = scale;
+        };
+      };
+    };
+    report = "Sandevistan time " + (keyOn ? "on" : "off") + ", Sandevistan effect " + (effectOn ? "on" : "off") + ", any slow-down " + (anyOn ? "on" : "off") + ", time system " + FloatToStringPrec(active, 3) + ", Sandevistan time scale " + FloatToStringPrec(scale, 3);
+    return dilation;
+  }
+
+  // While a charge fills (called each frame of the hold, and each time the
+  // charge grows). The charge fills in world time, so Sandevistan slows it,
+  // as it slows every melee charge in the game. The setting can make ours
+  // catch up:
   //   Partial: as the game does for gun fire rate (CalcCycleTimeDeltaFactor):
-  //            1 / dilation, times 0.5 to 0.9 by the charge time;
-  //   Full:    1 / dilation, the same real time as without Sandevistan.
+  //            1 / slow-down, times 0.5 to 0.9 by the charge time;
+  //   Full:    1 / slow-down, the same real time as without Sandevistan.
   // The pool's fill rate is only changed when it should differ from what it
   // is, and the charge already built up is kept, so Sandevistan starting or
-  // ending mid-charge only changes the speed.
-  public final func UpdateChargeRate(weapon: wref<WeaponObject>, time: ref<TimeSystem>) -> Void {
+  // ending mid-charge only changes the speed. With "Write a log" on, what was
+  // seen is written once per hold and again whenever the slow-down changes.
+  public final func UpdateChargeRate(weapon: wref<WeaponObject>, time: ref<TimeSystem>, source: String) -> Void {
     let mode: BluntLeapSandevistanCharge = this.Settings().sandevistanCharge;
+    let modeName: String = "Vanilla";
     let index: Int32;
     let base: Float;
     let rate: Float;
     let dilation: Float;
+    let report: String;
     let pools: ref<StatPoolsSystem>;
     let statsId: StatsObjectID;
     let regen: StatPoolModifier;
@@ -653,15 +706,26 @@ public class BluntLeapSystem extends ScriptableSystem {
     if base <= 0.0 {
       return;
     };
+    dilation = this.SandevistanDilation(time, report);
     rate = base;
-    if NotEquals(mode, BluntLeapSandevistanCharge.Vanilla) && time.IsTimeDilationActive(TimeDilationHelper.GetSandevistanKey()) {
-      dilation = time.GetActiveTimeDilation();
-      if dilation > 0.0 && dilation < 1.0 {
-        rate = base / dilation;
-        if Equals(mode, BluntLeapSandevistanCharge.Partial) {
-          rate *= ProportionalClampF(1.0, 2.0, 100.0 / base, 0.5, 0.9);
-        };
+    if Equals(mode, BluntLeapSandevistanCharge.Partial) {
+      modeName = "Partial";
+    };
+    if Equals(mode, BluntLeapSandevistanCharge.Full) {
+      modeName = "Full";
+    };
+    if NotEquals(mode, BluntLeapSandevistanCharge.Vanilla) && dilation < 1.0 {
+      rate = base / dilation;
+      if Equals(mode, BluntLeapSandevistanCharge.Partial) {
+        rate *= ProportionalClampF(1.0, 2.0, 100.0 / base, 0.5, 0.9);
       };
+    };
+    pools = GameInstance.GetStatPoolsSystem(weapon.GetGame());
+    statsId = Cast<StatsObjectID>(weapon.GetEntityID());
+    if this.Settings().debugLog && AbsF(dilation - this.m_loggedDilation) > 0.001 {
+      pools.GetModifier(statsId, gamedataStatPoolType.WeaponCharge, gameStatPoolModificationTypes.Regeneration, regen);
+      this.m_loggedDilation = dilation;
+      this.Log("Charge (" + source + "): setting " + modeName + "; " + report + "; slow-down used " + FloatToStringPrec(dilation, 3) + "; rate base " + FloatToStringPrec(base, 1) + ", pool now " + FloatToStringPrec(regen.valuePerSec, 1) + (regen.enabled ? "" : " (not filling)") + ", wanted " + FloatToStringPrec(rate, 1));
     };
     if AbsF(rate - this.m_chargeRates[index]) < 0.01 {
       return;
@@ -669,16 +733,20 @@ public class BluntLeapSystem extends ScriptableSystem {
     if !this.OwnsChargeOf(weapon) {
       return;
     };
-    pools = GameInstance.GetStatPoolsSystem(weapon.GetGame());
-    statsId = Cast<StatsObjectID>(weapon.GetEntityID());
     pools.GetModifier(statsId, gamedataStatPoolType.WeaponCharge, gameStatPoolModificationTypes.Regeneration, regen);
+    // Only while the game is filling it: turning filling on here could
+    // leave a charge filling after the hold has ended.
     if !regen.enabled {
+      if !this.m_loggedBlocked {
+        this.m_loggedBlocked = true;
+        this.Log("Charge (" + source + "): rate not changed, the pool is not filling");
+      };
       return;
     };
     regen.valuePerSec = rate;
     pools.RequestSettingModifier(statsId, gamedataStatPoolType.WeaponCharge, gameStatPoolModificationTypes.Regeneration, regen);
     this.m_chargeRates[index] = rate;
-    this.Log("Charge rate " + FloatToStringPrec(rate, 1) + " per s (base " + FloatToStringPrec(base, 1) + ", time dilation " + FloatToStringPrec(dilation, 2) + ")");
+    this.Log("Charge (" + source + "): rate set to " + FloatToStringPrec(rate, 1) + " per s");
   }
 
   // A charge we added has just become full: sound and rumble. The bar's
