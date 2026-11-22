@@ -115,28 +115,6 @@ public func OnEnter(stateContext: ref<StateContext>, scriptInterface: ref<StateG
   };
 }
 
-// Every frame of a held strong attack: the charge speed under Sandevistan
-// (setting "Charge speed under Sandevistan"). The hold state has no update
-// of its own; it uses this empty one of its parent class, so the wrapper
-// checks which state it runs for.
-@wrapMethod(MeleeEventsTransition)
-public func OnUpdate(timeDelta: Float, stateContext: ref<StateContext>, scriptInterface: ref<StateGameScriptInterface>) -> Void {
-  let weapon: ref<WeaponObject>;
-  let system: ref<BluntLeapSystem>;
-  wrappedMethod(timeDelta, stateContext, scriptInterface);
-  if !IsDefined(this as MeleeChargedHoldEvents) {
-    return;
-  };
-  weapon = MeleeTransition.GetWeaponObject(scriptInterface);
-  if !IsDefined(weapon) {
-    return;
-  };
-  system = BluntLeapSystem.Get(weapon.GetGame());
-  if IsDefined(system) {
-    system.UpdateChargeRate(weapon, scriptInterface.GetTimeSystem(), "hold update");
-  };
-}
-
 // The hold ends. The original keeps the charge only when the hold turns into
 // a strong attack (m_clearWeaponCharge false); otherwise ours is emptied.
 // A leap stores its charge before this and gives it back when it starts.

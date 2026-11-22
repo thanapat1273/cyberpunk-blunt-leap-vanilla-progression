@@ -63,6 +63,7 @@ One setting: **"Always charged" mode**, **off by default**. Off: any heavy attac
 | Mid-air leap | On |
 | Distance damage bonus | up to +50% at 20 m |
 | Hammer swing start | 0.5 s before arrival (others 0.3 s) |
+| Fists swing start (fists, Gorilla Arms) | 0.21 s before arrival (added 2026-11-22, D45) |
 
 **Charge**
 
@@ -265,12 +266,31 @@ Every wrapper calls the original first. Nothing is replaced. Finisher leaps and 
   - Vanilla: unchanged.
   - Partial: the game's gun catch-up, with the charge time as the cycle time. For our charge times (0.5 to 1.2 s) that is about half of the slow-down made up.
   - Full: 1 / dilation, the same real time as without Sandevistan.
-- **How:** the hold state has no update of its own and uses the empty `MeleeEventsTransition.OnUpdate`. A wrapper on it acts only for `MeleeChargedHoldEvents` and only for a weapon whose charge is ours. Each frame it works out the wanted fill rate. Only when that differs from the pool's current rate does it change the pool's Regeneration modifier (`GetModifier`, `valuePerSec`, `RequestSettingModifier`). The charge built up so far is kept, so Sandevistan starting or ending mid-charge only changes the speed.
+- **How (first build; its update wrapper turned out never to run and was removed, see the second test below):** the hold state has no update of its own and uses the empty `MeleeEventsTransition.OnUpdate`. A wrapper on it acts only for `MeleeChargedHoldEvents` and only for a weapon whose charge is ours. Each frame it works out the wanted fill rate. Only when that differs from the pool's current rate does it change the pool's Regeneration modifier (`GetModifier`, `valuePerSec`, `RequestSettingModifier`). The charge built up so far is kept, so Sandevistan starting or ending mid-charge only changes the speed.
 - Weapons with a charge of their own (stun batons, Gorilla Arms, blades) are not touched.
 - **First test (2026-11-22): no effect.** All three values felt the same, and the log had no "Charge rate" line, so the rate was never changed. Not known yet which step failed. The second build:
   - reads the slow-down more robustly. Sandevistan exempts the player from it (`SetIgnoreTimeDilationOnLocalPlayerZero`), so the time system's figure may show none. If so, it uses the player's Sandevistan time scale (`TimeDilationSandevistanTimeScale`, the figure `SandevistanEvents` sets). It counts Sandevistan as on by its time reason, or by its status effect while any slow-down is on;
   - has a second way in: the charge's own pool listener, each time the charge grows, in case the hold state's update is never called;
   - with "Write a log" on, writes what it sees once per hold and whenever the slow-down changes ("Charge (hold update)" or "Charge (charge grew)").
+- **Second test (2026-11-22): Full works.** The log showed:
+  - every line came from the pool listener ("charge grew"), none from the hold state's update. The game never calls the empty `MeleeEventsTransition.OnUpdate` that `MeleeChargedHoldEvents` inherits, so the first build's wrapper never ran. It has been removed; the listener is the only way in.
+  - `GetActiveTimeDilation()` does give Sandevistan's world slow-down (0.55 with the user's Sandevistan, the same as its `TimeDilationSandevistanTimeScale`). The fallback to the time scale is kept but was not needed.
+  - The rate follows Sandevistan's ease in and out (about 178 to 182 per second for a bat during the ease).
+
+### Fists swing start (2026-11-22, D45)
+
+- **Seen in game:** fist leaps landed their punch just before reaching the enemy.
+- **Cause** (game data): the leap starts the strong attack `attackStartupDuration` (0.3 s) before arrival. Each weapon's strong attack hits a fixed time after it starts (`attackEffectDelay`):
+
+  | Weapon | Hit after | Hit lands |
+  |---|---|---|
+  | Katana | 0.25 s | 0.05 s before arrival (the game's tuning) |
+  | Knife (the game starts it 0.1 s before) | 0.08 s | 0.02 s before arrival |
+  | **Fists, Gorilla Arms** (`StrongArmsStrongAttack` inherits `FistsStrongAttack`) | **0.19 s** | **0.11 s before arrival: short** |
+  | One-handed blunt, two-handed blunt | 0.29 s | about on arrival |
+  | Stun baton | 0.31 s | about on arrival |
+  | Hammer | 0.5 s | on arrival with "Hammer swing start" 0.5 s |
+- **Fix:** a "Fists swing start" setting (default 0.21 s: the 0.19 s hit plus the game's 0.02 s margin for knives) moves `LeapExitTime` the same way the hammer setting does, for fists and Gorilla Arms. Other blunt weapons keep the game's timing.
 
 ### Not built
 

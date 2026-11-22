@@ -191,6 +191,8 @@ public func OnEnter(stateContext: ref<StateContext>, scriptInterface: ref<StateG
   let range: Float;
   let started: Bool;
   let distance: Float;
+  let type: gamedataItemType;
+  let lead: Float;
 
   wrappedMethod(stateContext, scriptInterface);
 
@@ -234,11 +236,27 @@ public func OnEnter(stateContext: ref<StateContext>, scriptInterface: ref<StateG
     perkData.SetFloat(GetAllBlackboardDefs().PlayerPerkData.LeapedDistance, distance, true);
   };
 
-  // 2. Hammers swing slower, so they leave the leap for the swing earlier.
-  if Equals(WeaponObject.GetWeaponType(weapon.GetItemID()), gamedataItemType.Wea_Hammer) {
+  // 2. The swing should land on arrival. The game starts it
+  //    attackStartupDuration (0.3 s) before arrival, tuned for blades (a
+  //    katana's strong attack hits 0.25 s after it starts; knives get their
+  //    own 0.1 s for their 0.08 s). Most blunt strong attacks hit after
+  //    0.29 to 0.31 s, which fits. Two do not:
+  //      - hammers hit after 0.5 s, so they start earlier (hammerLead);
+  //      - fists and Gorilla Arms hit after 0.19 s, so with 0.3 s the punch
+  //        lands about 0.1 s before arrival, short of the enemy. They start
+  //        later (fistLead).
+  type = WeaponObject.GetWeaponType(weapon.GetItemID());
+  lead = -1.0;
+  if Equals(type, gamedataItemType.Wea_Hammer) {
+    lead = settings.hammerLead;
+  };
+  if Equals(type, gamedataItemType.Wea_Fists) || Equals(type, gamedataItemType.Cyb_StrongArms) {
+    lead = settings.fistLead;
+  };
+  if lead > 0.0 {
     exitTime = stateContext.GetConditionFloatParameter(n"LeapExitTime");
-    if exitTime.valid && exitTime.value > 0.0 {
-      stateContext.SetConditionFloatParameter(n"LeapExitTime", MaxF(exitTime.value - (settings.hammerLead - this.GetStaticFloatParameterDefault("attackStartupDuration", 0.3)), 0.0), true);
+    if exitTime.valid {
+      stateContext.SetConditionFloatParameter(n"LeapExitTime", MaxF(exitTime.value - (lead - this.GetStaticFloatParameterDefault("attackStartupDuration", 0.3)), 0.0), true);
     };
   };
 

@@ -17,7 +17,7 @@ If the game stops at launch with a script error, send me `r6/logs/redscript_rCUR
 | # | Do | Expect |
 |---|---|---|
 | 1.1 | Start the game, load a save | No error pop-up |
-| 1.2 | Open Mod Settings | "Battering Ram" with four groups (General, Leap, Charge, Stronger leap) and 29 settings |
+| 1.2 | Open Mod Settings | "Battering Ram" with four groups (General, Leap, Charge, Stronger leap) and 30 settings |
 | 1.3 | Open the Body perk page | Two new nodes on the row of Breakthrough: one right beside it (Blunt Leap), one further left (Stronger Leap). Two short lines join the three. A small Dash marker sits above Blunt Leap |
 | 1.4 | Hover both nodes | Name, description with numbers, no missing-text keys |
 | 1.5 | Look at both new nodes | Blunt Leap shows the bat icon, Stronger Leap the charged fist; both sharp and the same size as their neighbours |
@@ -44,10 +44,10 @@ Hold the strong attack at an enemy 3 to 15 m away and release.
 | 3.1 | One-handed blunt | V leaps and the hit lands on arrival |
 | 3.2 | Bat | Same |
 | 3.3 | Hammer | Same; the hit should land on arrival, not after it. If it lands late or early, note it (setting: Hammer swing start) |
-| 3.4 | Fists | Same |
+| 3.4 | Fists | Same; the punch lands as V arrives, not before (setting: Fists swing start, 0.21 s). **Failed 2026-11-22: the punch landed short; fixed in the next build, check again** |
 | 3.5 | Any, while in the air | Leap works (setting: Leap in mid-air) |
 | 3.6 | A blade without the blade perk | No leap: blades are unchanged |
-| 3.7 | Gorilla Arms | Leap works; quick finishers still work; no crash on landing |
+| 3.7 | Gorilla Arms | Leap works and the punch lands on arrival (Fists swing start); quick finishers still work; no crash on landing |
 | 3.8 | Enemy closer than 2 m, or further than 15 m | Normal strong attack |
 
 ## 4. Charge
@@ -115,7 +115,7 @@ This build fixes the four findings from the first play test and adds the round 3
 | 8.7 | Hover Battering Ram and Thunder Breaker | Each card plays its video (the leap; the charged hit, throw and EMP) and loops it. **Passed 2026-11-22** |
 | 8.8 | Read Thunder Breaker's description | "...send the enemy flying (80% chance, 30% against heavy enemies) or stagger them otherwise." |
 
-## 9. Charge speed under Sandevistan (2026-11-22)
+## 9. Charge speed under Sandevistan (2026-11-22; Full passed with the second build)
 
 Setting: Mod Settings, Battering Ram, Charge, "Charge speed under Sandevistan" (default Full). Use a bat; its charge takes about 1 s without Sandevistan. With "Write a log" on, each hold writes a "Charge (...)" line with what the mod sees (setting, Sandevistan on or off, the slow-down), and "rate set to" when it changes the speed. After testing, send me the `[Blunt Leap] Charge` lines from `bin/x64/plugins/cyber_engine_tweaks/gamelog.log`.
 

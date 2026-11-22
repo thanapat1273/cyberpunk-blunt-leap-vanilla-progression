@@ -19,8 +19,9 @@ public class BluntLeapValidateCallback extends DelayCallback {
 }
 
 // Watches a charge we added. Tells the system the moment it becomes full,
-// and, while it fills, lets the system match its speed to Sandevistan (a
-// second way in, besides the hold state's update).
+// and, while it fills, lets the system match its speed to Sandevistan. (The
+// hold state has no update of its own, and the game does not call the empty
+// one it inherits: a wrapper on it never ran in the test.)
 public class BluntLeapChargeListener extends ScriptStatPoolsListener {
   public let system: wref<BluntLeapSystem>;
   public let weapon: wref<WeaponObject>;
@@ -673,8 +674,7 @@ public class BluntLeapSystem extends ScriptableSystem {
     return dilation;
   }
 
-  // While a charge fills (called each frame of the hold, and each time the
-  // charge grows). The charge fills in world time, so Sandevistan slows it,
+  // While a charge fills (called each time the charge grows). The charge fills in world time, so Sandevistan slows it,
   // as it slows every melee charge in the game. The setting can make ours
   // catch up:
   //   Partial: as the game does for gun fire rate (CalcCycleTimeDeltaFactor):

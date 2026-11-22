@@ -16,7 +16,7 @@ Version 1.0.0. Played and tested in game (2026-11-22): the leap with blunt weapo
 | Thunder Breaker | Stronger leap on a full charge: longer and faster leap, EMP on a crit, send the enemy flying or stagger them, hit stop, full-charge sound, flash and rumble |
 | Perks | Two perks in the Body tree with the game's look, icons, texts and videos; four unlock rules; the Dash requirement with a Dash box on the perk screen; automatic refunds |
 
-Not confirmed in game yet: the setting "Charge speed under Sandevistan" (default Full) after its second build.
+Not confirmed in game yet: the "Fists swing start" fix (fists and Gorilla Arms punches landed short of the enemy).
 
 The full design is in [SPEC.md](SPEC.md). The game facts behind it are in [RESEARCH.md](RESEARCH.md).
 

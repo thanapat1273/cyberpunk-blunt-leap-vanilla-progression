@@ -88,11 +88,21 @@ public class BluntLeapSettings extends IScriptable {
   @runtimeProperty("ModSettings.category", "Battering Ram (the leap)")
   @runtimeProperty("ModSettings.category.order", "2")
   @runtimeProperty("ModSettings.displayName", "Hammer swing start (s)")
-  @runtimeProperty("ModSettings.description", "How long before landing a hammer starts its swing. Hammers swing slower than other weapons, so they start earlier to hit on arrival. Other weapons use the game's 0.3.")
+  @runtimeProperty("ModSettings.description", "How long before landing a hammer starts its swing. Hammers swing slower than other weapons, so they start earlier to hit on arrival. Fists and Gorilla Arms have their own setting; other weapons use the game's 0.3.")
   @runtimeProperty("ModSettings.step", "0.05")
   @runtimeProperty("ModSettings.min", "0.3")
   @runtimeProperty("ModSettings.max", "0.7")
   public let hammerLead: Float = 0.5;
+
+  @runtimeProperty("ModSettings.mod", "Battering Ram")
+  @runtimeProperty("ModSettings.category", "Battering Ram (the leap)")
+  @runtimeProperty("ModSettings.category.order", "2")
+  @runtimeProperty("ModSettings.displayName", "Fists swing start (s)")
+  @runtimeProperty("ModSettings.description", "How long before landing a punch starts, for fists and Gorilla Arms. A punch hits sooner after it starts than a blade, so it starts later to land on arrival. Lower it if punches still land short; raise it if they land late.")
+  @runtimeProperty("ModSettings.step", "0.01")
+  @runtimeProperty("ModSettings.min", "0.1")
+  @runtimeProperty("ModSettings.max", "0.4")
+  public let fistLead: Float = 0.21;
 
   // -------------------------------------------------------------- charge
 
