@@ -13,8 +13,8 @@ of pixels that belong to the katana: the blade, the faint line trailing its
 lower side, and the round guard at the hand. Every pixel outside those spans
 is copied from the game's icon untouched.
 
-Step 2, add the bat. It is drawn as a shape, with a dark gap where the open
-hand lies over it, and merged into the icon.
+Step 2, add the bat. It is drawn as a shape, in front of everything it
+crosses (the open hand, the top of the leg), as the katana was.
 
 Out folder gets blunt-leap-icon.png (the icon at the game's size, same pixel
 format as the game's), blunt-leap-icon.svg (the same picture as outlines) and
@@ -53,19 +53,32 @@ KATANA_ROWS = {
 }
 
 # --- step 2: the bat ----------------------------------------------------------
+# The bat runs straight from the right hand, which the game's picture hides
+# behind the sword guard, down across the body. It is in front of everything
+# it crosses, as the katana was: the open hand is behind it, and the lines of
+# the leg come out from under its lower edge.
 
-KNOB = (102.0, 52.5)          # centre of the knob, just under the forearm's end
-DIRECTION = (-0.8045, 0.594)  # towards the barrel, unit length
-BAT_LENGTH = 95.0             # from the knob's outer end to the barrel's end
-KNOB_RADIUS = 3.3
-# The open left hand (palm and fingers) lies over the bat.
-FRONT = [(36, 69), (76, 69), (76, 84.5), (36, 84.5)]
-GAP = 1.3                     # dark gap between the hand and the bat
+BAT = {
+    "grip": (101.0, 56.0),    # where the hidden right hand holds it
+    "angle": 44.0,            # degrees below level, towards the lower left
+    "knob_behind": 9.0,       # the knob's outer end sits this far behind the grip
+    "length": 82.0,           # knob end to barrel end
+    "knob": 3.3,              # radius of the knob
+    "handle": (1.8, 2.1),     # half-width at the two ends of the handle
+    "barrel": (5.3, 5.5),     # half-width where the barrel starts, and at its end
+    "taper": (0.30, 0.56),    # where the taper starts and ends, as shares of the length
+    "cap": 4.0,               # length of the rounded end
+}
+GAP = 1.0                     # dark gap around the bat where it crosses other lines
 
 
-def bat_radius(s):
+def bat_radius(s, bat):
     """Half-width of the bat at distance s from the knob's outer end."""
-    length, knob = BAT_LENGTH, KNOB_RADIUS
+    length, knob = bat["length"], bat["knob"]
+    h0, h1 = bat["handle"]
+    b0, b1 = bat["barrel"]
+    taper0, taper1 = bat["taper"][0] * length, bat["taper"][1] * length
+    cap = length - bat["cap"]
     if s < 0 or s > length:
         return 0.0
     if s < knob:                                   # knob, rounded
@@ -73,51 +86,51 @@ def bat_radius(s):
     if s < knob + 0.9:
         return knob
     if s < knob + 2.2:                             # knob to handle
-        return knob + (1.75 - knob) * (s - knob - 0.9) / 1.3
-    taper0, taper1, cap = length - 57, length - 25, length - 4
+        return knob + (h0 - knob) * (s - knob - 0.9) / 1.3
     if s < taper0:                                 # handle
-        return 1.75 + 0.35 * (s - knob - 2.2) / (taper0 - knob - 2.2)
+        return h0 + (h1 - h0) * (s - knob - 2.2) / (taper0 - knob - 2.2)
     if s < taper1:                                 # taper
         u = (s - taper0) / (taper1 - taper0)
         u = u * u * (3 - 2 * u)
-        return 2.1 + (5.3 - 2.1) * u
+        return h1 + (b0 - h1) * u
     if s < cap:                                    # barrel
-        return 5.3 + 0.2 * (s - taper1) / (cap - taper1)
-    return 5.5 * math.sqrt(max(0.0, 1 - ((s - cap) / 4.0) ** 2))   # end
+        return b0 + (b1 - b0) * (s - taper1) / (cap - taper1)
+    return b1 * math.sqrt(max(0.0, 1 - ((s - cap) / bat["cap"]) ** 2))   # end
 
 
-def bat_axis():
-    dx, dy = DIRECTION
-    return KNOB[0] - dx * KNOB_RADIUS, KNOB[1] - dy * KNOB_RADIUS, dx, dy
+def bat_axis(bat):
+    angle = math.radians(bat["angle"])
+    dx, dy = -math.cos(angle), math.sin(angle)
+    return bat["grip"][0] - dx * bat["knob_behind"], bat["grip"][1] - dy * bat["knob_behind"], dx, dy
 
 
-def bat_outline(step=0.25):
-    ox, oy, dx, dy = bat_axis()
+def bat_outline(bat, step=0.25):
+    ox, oy, dx, dy = bat_axis(bat)
     nx, ny = -dy, dx
-    n = int(round(BAT_LENGTH / step))
+    n = int(round(bat["length"] / step))
     up, down = [], []
     for i in range(n + 1):
-        s = BAT_LENGTH * i / n
-        r = bat_radius(s)
+        s = bat["length"] * i / n
+        r = bat_radius(s, bat)
         cx, cy = ox + dx * s, oy + dy * s
         up.append((cx + nx * r, cy + ny * r))
         down.append((cx - nx * r, cy - ny * r))
     return up + down[::-1]
 
 
-def bat_shadow_line(offset=0.42, width=0.55, step=0.5):
+def bat_shadow_line(bat, offset=0.42, width=0.55, step=0.5):
     """A thin dark line along the barrel's lower side, so the bat is not one
     flat shape (the katana had its serrated line)."""
-    ox, oy, dx, dy = bat_axis()
+    ox, oy, dx, dy = bat_axis(bat)
     nx, ny = -dy, dx
-    s0, s1 = BAT_LENGTH - 50, BAT_LENGTH - 8
+    s0, s1 = bat["length"] * 0.47, bat["length"] * 0.91
     n = int(round((s1 - s0) / step))
     up, down = [], []
     for i in range(n + 1):
         u = i / n
         s = s0 + (s1 - s0) * u
         half = width * math.sin(math.pi * u) ** 0.6     # pointed at both ends
-        c = bat_radius(s) * offset
+        c = bat_radius(s, bat) * offset
         cx, cy = ox + dx * s, oy + dy * s
         up.append((cx + nx * (c + half), cy + ny * (c + half)))
         down.append((cx + nx * (c - half), cy + ny * (c - half)))
@@ -324,28 +337,39 @@ def to_svg(field, w, h):
 
 # --- build --------------------------------------------------------------------
 
-def build(src, out_dir, work_dir=None):
-    original = np.asarray(Image.open(src).convert("RGBA"))[..., 3].astype(np.float32)
-    h, w = original.shape
-    size = (w * K, h * K)
-
-    # Step 1: take the katana out. Every other pixel stays as the game has it.
-    removed = np.zeros((h, w), dtype=bool)
+def remove_katana(original):
+    """Step 1: take the katana out. Every other pixel stays as the game has it."""
+    removed = np.zeros(original.shape, dtype=bool)
     for y, (x0, x1) in KATANA_ROWS.items():
         removed[y, x0:x1 + 1] = True
-    kept = np.where(removed, 0.0, original)
+    return removed, np.where(removed, 0.0, original)
+
+
+def add_bat(kept, bat):
+    """Step 2: the bat, in front. Returns the icon and, enlarged, the two
+    layers it is made of (for the outlines)."""
+    h, w = kept.shape
+    size = (w * K, h * K)
+    shape = polygon_field(bat_outline(bat), size)
+    bat_big = shape * (1 - polygon_field(bat_shadow_line(bat), size))
+    halo_big = dilate(shape >= 0.5, GAP)          # the bat and a thin rim around it
+    halo = halo_big.reshape(h, K, w, K).mean(axis=(1, 3))
+    bat_small = bat_big.reshape(h, K, w, K).mean(axis=(1, 3)) * 255.0
+    final = np.maximum(kept * (1 - halo), bat_small)
+    return final, enlarge(kept) * (1 - halo_big), bat_big
+
+
+def build(src, out_dir, work_dir=None, bat=BAT):
+    original = np.asarray(Image.open(src).convert("RGBA"))[..., 3].astype(np.float32)
+    h, w = original.shape
+
+    removed, kept = remove_katana(original)
     print("step 1: %d pixels taken out, %d left unchanged" % (int((removed & (original > 0)).sum()),
                                                               int((~removed & (original > 0)).sum())))
 
-    # Step 2: the bat, with a gap where the open hand lies over it.
-    kept_big = enlarge(kept)
-    front = kept_big * polygon_field(FRONT, size)
-    bat_big = polygon_field(bat_outline(), size) * (1 - polygon_field(bat_shadow_line(), size))
-    bat_big = bat_big * (1 - dilate(front >= 0.3, GAP))
-    bat = bat_big.reshape(h, K, w, K).mean(axis=(1, 3)) * 255.0
-    final = np.maximum(kept, bat)
-    changed = (np.rint(final) != np.rint(original)) & ~removed
-    print("step 2: the bat touches %d pixels outside the katana's place" % int(changed.sum()))
+    final, kept_big, bat_big = add_bat(kept, bat)
+    covered = (kept > 0) & (np.rint(final) < np.rint(kept))
+    print("step 2: the bat passes in front of %d of the game's pixels" % int(covered.sum()))
 
     os.makedirs(out_dir, exist_ok=True)
     to_icon(final).save(os.path.join(out_dir, "blunt-leap-icon.png"))
