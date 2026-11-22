@@ -161,12 +161,14 @@ public let bluntLeapDashBox: Bool;
 private final func UpdateRequirements(playerDevelopmentData: wref<PlayerDevelopmentData>, data: ref<NewPerkTooltipData>) -> Void {
   let record: ref<NewPerk_Record>;
   let level: Int32 = 9;
+  let block: wref<inkWidget>;
   wrappedMethod(playerDevelopmentData, data);
-  if !IsDefined(data) {
+  block = inkWidgetRef.Get(this.m_traitLevelGrowthText);
+  if !IsDefined(data) || !IsDefined(block) {
     return;
   };
   // Every other perk card: the block keeps the game's own colour.
-  inkWidgetRef.Get(this.m_traitLevelGrowthText).BindProperty(n"tintColor", n"PerkTooltip.levelColor");
+  block.BindProperty(n"tintColor", n"PerkTooltip.levelColor");
   if IsDefined(data.perkData) && data.perkData.bluntLeapDashBox {
     record = RPGManager.GetNewPerkRecord(gamedataNewPerkType.Reflexes_Central_Milestone_2);
     if IsDefined(record) && IsDefined(record.Tier()) {
@@ -186,7 +188,11 @@ private final func UpdateRequirements(playerDevelopmentData: wref<PlayerDevelopm
 // card's descriptions while it shows our line.
 @addMethod(PerkDisplayTooltipController)
 private final func BluntLeap_CardLine(text: String) -> Void {
-  inkWidgetRef.Get(this.m_traitLevelGrowthText).BindProperty(n"tintColor", n"PerkTooltip.descriptionColour");
+  let block: wref<inkWidget> = inkWidgetRef.Get(this.m_traitLevelGrowthText);
+  if !IsDefined(block) {
+    return;
+  };
+  block.BindProperty(n"tintColor", n"PerkTooltip.descriptionColour");
   inkTextRef.SetText(this.m_traitLevelGrowthText, text);
   inkTextRef.SetVisible(this.m_traitLevelGrowthText, true);
 }

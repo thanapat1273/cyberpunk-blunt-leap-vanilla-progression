@@ -162,8 +162,13 @@ private final func BluntLeap_Wire(trees: wref<inkCompoundWidget>, name: CName, p
 
 // One layer of a perk box: a picture centred in the box, tinted (and faded)
 // by the game's own perk-box style. Layers carry the game's own names.
+//
+// It returns nothing on purpose. A script function that returns a weak
+// reference made from a strong one crashes the game when its caller ignores
+// the result: the game writes the reference into a result slot that is not
+// there. The callers find a layer again by its name instead.
 @addMethod(NewPerksScreenLogicController)
-private final func BluntLeap_BoxLayer(box: wref<inkCanvas>, name: CName, atlas: ResRef, part: CName, width: Float, height: Float, tint: CName, opacity: CName) -> wref<inkImage> {
+private final func BluntLeap_BoxLayer(box: wref<inkCanvas>, name: CName, atlas: ResRef, part: CName, width: Float, height: Float, tint: CName, opacity: CName) -> Void {
   let layer: ref<inkImage> = new inkImage();
   layer.SetName(name);
   layer.SetAtlasResource(atlas);
@@ -178,7 +183,6 @@ private final func BluntLeap_BoxLayer(box: wref<inkCanvas>, name: CName, atlas: 
   };
   layer.SetInteractive(false);
   layer.Reparent(box);
-  return layer;
 }
 
 // The small Dash box: the game's perk box at 60%, 48 px under Blunt leap
@@ -211,14 +215,20 @@ private final func BluntLeap_DashBox(trees: wref<inkCompoundWidget>) -> wref<ink
   this.BluntLeap_BoxLayer(box, n"cell_inner_bg", cells, n"Perk_Cell_inner_bg", 125.0, 116.0, n"PerkCellBase.backgroundColorInner", n"");
   icon = TweakDBInterface.GetUIIconRecord(t"UIIcon.Reflexes_Central_Milestone_2");
   if IsDefined(icon) {
-    image = this.BluntLeap_BoxLayer(box, n"ico_master", icon.AtlasResourcePath(), icon.AtlasPartName(), 125.0, 116.0, n"PerkCellBase.iconColor", n"PerkCellBase.iconOpacity");
-    image.SetRenderTransformPivot(0.5, 0.5);
+    this.BluntLeap_BoxLayer(box, n"ico_master", icon.AtlasResourcePath(), icon.AtlasPartName(), 125.0, 116.0, n"PerkCellBase.iconColor", n"PerkCellBase.iconOpacity");
+    image = box.GetWidgetByPathName(n"ico_master") as inkImage;
+    if IsDefined(image) {
+      image.SetRenderTransformPivot(0.5, 0.5);
+    };
   };
   // The light that sweeps across the box on hover, as on the game's boxes.
-  sweep = this.BluntLeap_BoxLayer(box, n"cell_inner_fg_9slices", cells, n"Perk_Cell_inner_fg_9slices", 40.0, 116.0, n"PerkCellBase.foregroundColorInner", n"");
-  sweep.SetNineSliceScale(true);
-  sweep.SetNineSliceGrid(new inkMargin(20.0, 0.0, 20.0, 0.0));
-  sweep.SetOpacity(0.0);
+  this.BluntLeap_BoxLayer(box, n"cell_inner_fg_9slices", cells, n"Perk_Cell_inner_fg_9slices", 40.0, 116.0, n"PerkCellBase.foregroundColorInner", n"");
+  sweep = box.GetWidgetByPathName(n"cell_inner_fg_9slices") as inkImage;
+  if IsDefined(sweep) {
+    sweep.SetNineSliceScale(true);
+    sweep.SetNineSliceGrid(new inkMargin(20.0, 0.0, 20.0, 0.0));
+    sweep.SetOpacity(0.0);
+  };
   this.BluntLeap_BoxLayer(box, n"cell_inner_fg", cells, n"Perk_Cell_inner_fg", 125.0, 116.0, n"PerkCellBase.foregroundColorInner", n"PerkCellBase.foregroundColorInnerOpacity");
   // Only the box itself takes the pointer.
   box.SetInteractive(true);

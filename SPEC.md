@@ -221,6 +221,20 @@ Every wrapper calls the original first. Nothing is replaced. Finisher leaps and 
 - The card shows no buy or sell hints, and adds one line: "Found in the Reflexes tree (Reflexes 9). Battering Ram needs both of its levels: the leap is a Dash that ends in a heavy hit."
 - Hooks: two `cb func`s on `NewPerksScreenLogicController` (box hover), two methods added to `NewPerksCategoriesGameController` (show and hide the card), a field on `NewPerkDisplayData` (marks the card), and a wrapper on `PerkDisplayTooltipController.UpdateTooltipHints`.
 
+### Crash fix: the perk screen (2026-11-22)
+
+**What happened:** after the names-and-card build, opening any perk page crashed the game (twice, same address).
+
+**Cause** (from the two crash dumps):
+- Both crashes stop in the game's weak-reference assignment (`Cyberpunk2077+0x18a5a4`), writing into an address of 0.
+- The stack still held the arguments of the first Dash-box layer call (`cell_outer_bg`, `Perk_Cell_outer_bg`, `PerkCellBase.backgroundColorOuter`).
+- That build had made `BluntLeap_BoxLayer` return its layer as a `wref<inkImage>` made from a `ref`. Four of its six calls ignored the result. When a call's result is ignored, the game has no slot to write the weak reference into, so it writes to 0.
+- No other function in the mod returns a weak reference that a caller ignores.
+
+**Fix:**
+- `BluntLeap_BoxLayer` returns nothing again (as in the second build, which opened the page fine). The icon and sweep layers are looked up by name afterwards, with null checks.
+- The two card-line wrappers also check that the card's text block exists before using it.
+
 ### Not built
 
 - **Screen-edge pulse at full charge** (default Off in §5): no suitable game effect picked yet.

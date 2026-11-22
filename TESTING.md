@@ -105,6 +105,7 @@ This build fixes the four findings from the first play test and adds the round 3
 
 | # | Do | Expect |
 |---|---|---|
+| 8.0 | Open the perk screen, then every attribute page, Body last | No crash (the previous build crashed here; fixed 2026-11-22) |
 | 8.1 | Hover both new perks | Names BATTERING RAM and THUNDER BREAKER; descriptions in the game's style, numbers filled in |
 | 8.2 | In Mod Settings turn "Always charged" on, load the save, hover Battering Ram | Its description now says "fully charged Strong Attacks" |
 | 8.3 | Turn EMP off, load, hover Thunder Breaker | The EMP sentence is gone |
