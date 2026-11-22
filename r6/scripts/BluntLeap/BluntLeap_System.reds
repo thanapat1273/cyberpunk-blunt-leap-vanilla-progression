@@ -755,28 +755,36 @@ public class BluntLeapSystem extends ScriptableSystem {
     this.Log("Charge (" + source + "): rate set to " + FloatToStringPrec(rate, 1) + " per s");
   }
 
-  // A leap has started: the attack at its end gets the extra reach set for
-  // the weapon type (settings "Reach bonus"; fists and Gorilla Arms 1.0 m by
-  // default, the others none). A melee hit's box is as long as the weapon's Range stat
+  // A leap has started: the attack at its end reaches at least the minimum
+  // leap reach (setting, 2.5 m), and at least the weapon type's reach bonus
+  // farther than the weapon's own reach (settings "Reach bonus", 0 by
+  // default). A melee hit's box is as long as the weapon's Range stat
   // (MeleeAttackGenericEvents.CreateMeleeAttack). After a leap the game does
   // not move V towards the target again (the attack's move-to-target, the
   // other use of Range, is skipped when it follows a leap), so the bonus
   // only lengthens the punch. It is taken off when that attack ends, or when
   // the leap ends without one.
   public final func AddLeapReach(weapon: wref<WeaponObject>) -> Void {
+    let stats: ref<StatsSystem>;
+    let range: Float;
     let bonus: Float;
     this.RemoveLeapReach();
     if !IsDefined(weapon) {
       return;
     };
-    bonus = this.LeapReachFor(WeaponObject.GetWeaponType(weapon.GetItemID()));
-    if !IsDefined(weapon) || bonus <= 0.0 {
+    // The weapon's own reach right now (its type's, or its own if the
+    // weapon differs), then: at least the minimum, and at least the type's
+    // bonus on top.
+    stats = GameInstance.GetStatsSystem(weapon.GetGame());
+    range = stats.GetStatValue(Cast<StatsObjectID>(weapon.GetEntityID()), gamedataStatType.Range);
+    bonus = MaxF(this.LeapReachFor(WeaponObject.GetWeaponType(weapon.GetItemID())), this.Settings().leapMinReach - range);
+    if bonus <= 0.0 {
       return;
     };
     this.m_reachMod = RPGManager.CreateStatModifier(gamedataStatType.Range, gameStatModifierType.Additive, bonus);
     this.m_reachId = weapon.GetEntityID();
-    GameInstance.GetStatsSystem(weapon.GetGame()).AddModifier(Cast<StatsObjectID>(this.m_reachId), this.m_reachMod);
-    this.Log("Leap reach +" + FloatToStringPrec(bonus, 1) + " m");
+    stats.AddModifier(Cast<StatsObjectID>(this.m_reachId), this.m_reachMod);
+    this.Log("Leap reach " + FloatToStringPrec(range, 1) + " + " + FloatToStringPrec(bonus, 1) + " = " + FloatToStringPrec(range + bonus, 1) + " m");
   }
 
   // How long before landing the leap's strong attack starts (settings
