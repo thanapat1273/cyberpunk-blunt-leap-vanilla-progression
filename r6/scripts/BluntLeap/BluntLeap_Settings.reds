@@ -104,6 +104,16 @@ public class BluntLeapSettings extends IScriptable {
   @runtimeProperty("ModSettings.max", "0.4")
   public let fistLead: Float = 0.21;
 
+  @runtimeProperty("ModSettings.mod", "Battering Ram")
+  @runtimeProperty("ModSettings.category", "Battering Ram (the leap)")
+  @runtimeProperty("ModSettings.category.order", "2")
+  @runtimeProperty("ModSettings.displayName", "Fists leap reach bonus (m)")
+  @runtimeProperty("ModSettings.description", "Extra reach for the punch that ends a leap, for fists and Gorilla Arms. The game gives them 1.5 m (a two-handed bat has 2.5 m, a katana 3 m). Normal punches are unchanged. 0 turns it off.")
+  @runtimeProperty("ModSettings.step", "0.1")
+  @runtimeProperty("ModSettings.min", "0.0")
+  @runtimeProperty("ModSettings.max", "2.0")
+  public let fistLeapReach: Float = 1.0;
+
   // -------------------------------------------------------------- charge
 
   @runtimeProperty("ModSettings.mod", "Battering Ram")

@@ -259,6 +259,11 @@ public func OnEnter(stateContext: ref<StateContext>, scriptInterface: ref<StateG
       stateContext.SetConditionFloatParameter(n"LeapExitTime", MaxF(exitTime.value - (lead - this.GetStaticFloatParameterDefault("attackStartupDuration", 0.3)), 0.0), true);
     };
   };
+  //    Fists also have the shortest reach (1.5 m), so the punch that ends the
+  //    leap gets extra reach (setting "Fists leap reach bonus").
+  if Equals(type, gamedataItemType.Wea_Fists) || Equals(type, gamedataItemType.Cyb_StrongArms) {
+    system.AddLeapReach(weapon);
+  };
 
   if !stored.valid || stored.value <= 0.0 {
     system.Log("Leap, " + FloatToStringPrec(distance, 1) + " m, no charge");
@@ -278,4 +283,30 @@ public func OnEnter(stateContext: ref<StateContext>, scriptInterface: ref<StateG
     system.ArmStrongLeap(2.0);
   };
   system.Log("Leap, " + FloatToStringPrec(distance, 1) + " m, charge " + FloatToStringPrec(stored.value * 100.0, 0) + "%");
+}
+
+// The leap ends. If it does not go on into its strong attack (no target hit,
+// a block, a dodge), the extra reach for its punch comes off here; otherwise
+// it comes off when that attack ends (BluntLeap_Charge.reds).
+@wrapMethod(MeleeLeapEvents)
+public func OnExit(stateContext: ref<StateContext>, scriptInterface: ref<StateGameScriptInterface>) -> Void {
+  let system: ref<BluntLeapSystem>;
+  wrappedMethod(stateContext, scriptInterface);
+  if this.m_exitingToMeleeStrongAttack {
+    return;
+  };
+  system = BluntLeapSystem.Get(scriptInterface.executionOwner.GetGame());
+  if IsDefined(system) {
+    system.RemoveLeapReach();
+  };
+}
+
+@wrapMethod(MeleeLeapEvents)
+public func OnForcedExit(stateContext: ref<StateContext>, scriptInterface: ref<StateGameScriptInterface>) -> Void {
+  let system: ref<BluntLeapSystem>;
+  wrappedMethod(stateContext, scriptInterface);
+  system = BluntLeapSystem.Get(scriptInterface.executionOwner.GetGame());
+  if IsDefined(system) {
+    system.RemoveLeapReach();
+  };
 }

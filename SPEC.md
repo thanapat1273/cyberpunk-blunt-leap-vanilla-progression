@@ -64,6 +64,7 @@ One setting: **"Always charged" mode**, **off by default**. Off: any heavy attac
 | Distance damage bonus | up to +50% at 20 m |
 | Hammer swing start | 0.5 s before arrival (others 0.3 s) |
 | Fists swing start (fists, Gorilla Arms) | 0.21 s before arrival (added 2026-11-22, D45) |
+| Fists leap reach bonus (fists, Gorilla Arms) | +1.0 m on the leap's punch only (added 2026-11-23, D46) |
 
 **Charge**
 
@@ -291,6 +292,14 @@ Every wrapper calls the original first. Nothing is replaced. Finisher leaps and 
   | Stun baton | 0.31 s | about on arrival |
   | Hammer | 0.5 s | on arrival with "Hammer swing start" 0.5 s |
 - **Fix:** a "Fists swing start" setting (default 0.21 s: the 0.19 s hit plus the game's 0.02 s margin for knives) moves `LeapExitTime` the same way the hammer setting does, for fists and Gorilla Arms. Other blunt weapons keep the game's timing.
+
+### Fists leap reach bonus (2026-11-23, D46)
+
+- **Seen in game:** with the swing start fixed, fist leaps still missed often: the reach is too short.
+- **How a melee hit's reach works:** the hit is a box swept in front of V, as long as the weapon's `Range` stat (`MeleeAttackGenericEvents.CreateMeleeAttack`). Player weapons: fists and Gorilla Arms 1.5 m, knife 1.5, one-handed blunt and hammer 2.0, two-handed blunt 2.5, katana 3.0. The leap stops 0.9 m from the target's centre.
+- **Fix:** while a fist or Gorilla Arms leap runs and until its punch ends, the weapon gets +`fistLeapReach` m of `Range` (setting "Fists leap reach bonus", default 1.0 m: fists reach like a two-handed bat).
+  - `Range` is also used by an attack's move-to-target, which could put V farther away; the game skips that move when the attack follows a leap, so the bonus only lengthens the punch.
+  - Taken off when the attack ends (`MeleeAttackGenericEvents.OnExit` / `OnForcedExit`), when the leap ends without its attack (`MeleeLeapEvents.OnExit` not going on to the strong attack, `OnForcedExit`), when a weapon is drawn, and on loading a save.
 
 ### Not built
 

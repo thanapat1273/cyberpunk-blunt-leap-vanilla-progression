@@ -68,6 +68,11 @@ public class BluntLeapSystem extends ScriptableSystem {
   private let m_loggedDilation: Float;
   private let m_loggedBlocked: Bool;
 
+  // Extra reach for the punch that ends a fist leap: the modifier and the
+  // weapon it is on.
+  private let m_reachMod: ref<gameStatModifierData>;
+  private let m_reachId: EntityID;
+
   // A stronger leap is on its way: its hit gets the extra effects until this time.
   private let m_strongUntil: Float;
   private let m_empDone: Bool;
@@ -99,6 +104,7 @@ public class BluntLeapSystem extends ScriptableSystem {
     let callback: ref<BluntLeapValidateCallback> = new BluntLeapValidateCallback();
     callback.system = this;
     this.ForgetCharges();
+    this.m_reachMod = null;
     this.Refresh();
     GameInstance.GetDelaySystem(this.GetGameInstance()).DelayCallback(callback, 1.5, false);
   }
@@ -747,6 +753,33 @@ public class BluntLeapSystem extends ScriptableSystem {
     pools.RequestSettingModifier(statsId, gamedataStatPoolType.WeaponCharge, gameStatPoolModificationTypes.Regeneration, regen);
     this.m_chargeRates[index] = rate;
     this.Log("Charge (" + source + "): rate set to " + FloatToStringPrec(rate, 1) + " per s");
+  }
+
+  // A leap with fists or Gorilla Arms has started: the punch at its end gets
+  // extra reach. A melee hit's box is as long as the weapon's Range stat
+  // (MeleeAttackGenericEvents.CreateMeleeAttack). After a leap the game does
+  // not move V towards the target again (the attack's move-to-target, the
+  // other use of Range, is skipped when it follows a leap), so the bonus
+  // only lengthens the punch. It is taken off when that attack ends, or when
+  // the leap ends without one.
+  public final func AddLeapReach(weapon: wref<WeaponObject>) -> Void {
+    let bonus: Float = this.Settings().fistLeapReach;
+    this.RemoveLeapReach();
+    if !IsDefined(weapon) || bonus <= 0.0 {
+      return;
+    };
+    this.m_reachMod = RPGManager.CreateStatModifier(gamedataStatType.Range, gameStatModifierType.Additive, bonus);
+    this.m_reachId = weapon.GetEntityID();
+    GameInstance.GetStatsSystem(weapon.GetGame()).AddModifier(Cast<StatsObjectID>(this.m_reachId), this.m_reachMod);
+    this.Log("Leap reach +" + FloatToStringPrec(bonus, 1) + " m");
+  }
+
+  public final func RemoveLeapReach() -> Void {
+    if !IsDefined(this.m_reachMod) {
+      return;
+    };
+    GameInstance.GetStatsSystem(this.GetGameInstance()).RemoveModifier(Cast<StatsObjectID>(this.m_reachId), this.m_reachMod);
+    this.m_reachMod = null;
   }
 
   // A charge we added has just become full: sound and rumble. The bar's

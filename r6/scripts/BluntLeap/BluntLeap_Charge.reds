@@ -36,6 +36,7 @@ protected cb func OnPreIntro() -> Bool {
       if ours {
         system.ClearCharge(weapon);
       };
+      system.RemoveLeapReach();
     };
   };
 
@@ -175,7 +176,8 @@ protected func ConsumeWeaponCharge(scriptInterface: ref<StateGameScriptInterface
 }
 
 // The attack ends, however it ends (the hit window may never be reached when
-// it is interrupted). The damage has already taken the charge it needed.
+// it is interrupted). The damage has already taken the charge it needed, and
+// a fist leap's punch its extra reach.
 @wrapMethod(MeleeAttackGenericEvents)
 public func OnExit(stateContext: ref<StateContext>, scriptInterface: ref<StateGameScriptInterface>) -> Void {
   let weapon: ref<WeaponObject>;
@@ -186,6 +188,7 @@ public func OnExit(stateContext: ref<StateContext>, scriptInterface: ref<StateGa
     system = BluntLeapSystem.Get(weapon.GetGame());
     if IsDefined(system) {
       system.ClearCharge(weapon);
+      system.RemoveLeapReach();
     };
   };
 }
@@ -200,6 +203,7 @@ public func OnForcedExit(stateContext: ref<StateContext>, scriptInterface: ref<S
     system = BluntLeapSystem.Get(weapon.GetGame());
     if IsDefined(system) {
       system.ClearCharge(weapon);
+      system.RemoveLeapReach();
     };
   };
 }
