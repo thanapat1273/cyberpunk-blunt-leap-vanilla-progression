@@ -346,6 +346,7 @@ public final func BluntLeap_ShowDashCard(box: wref<inkWidget>) -> Void {
   let development: ref<PlayerDevelopmentData>;
   let data: ref<NewPerkDisplayData>;
   let tooltipData: ref<BasePerksMenuTooltipData>;
+  let card: ref<NewPerkTooltipData>;
   let holder: wref<inkWidget>;
   let boxPosition: Vector2;
   let boxSize: Vector2;
@@ -368,11 +369,12 @@ public final func BluntLeap_ShowDashCard(box: wref<inkWidget>) -> Void {
   data.m_level = development.IsNewPerkBought(dash);
   data.m_maxLevel = record.GetLevelsCount();
   data.m_locked = !development.IsNewPerkUnlocked(dash);
-  data.bluntLeapDashBox = true;
   tooltipData = data.CreateTooltipData(this.m_dataManager);
-  if !IsDefined(tooltipData) {
+  card = tooltipData as NewPerkTooltipData;
+  if !IsDefined(card) {
     return;
   };
+  card.bluntLeapDashBox = true;
   inverse = this.m_uiSystem.GetInverseUIScale();
   boxPosition = WidgetUtils.LocalToGlobal(box);
   boxSize = box.GetSize();

@@ -8,8 +8,46 @@
 // in every variant and BluntLeapSystem points the perk at the right one.
 // Numbers come from the perk records ({float_0}, ...), which follow the
 // settings too.
+//
+// The game's own text lookup (GetLocalizedText) does not find these keys:
+// the perk card showed the bare keys. So every text is read through
+// BluntLeapText.Get below, which asks Codeware's localization system and,
+// failing that, reads our English package directly.
 
 import Codeware.Localization.*
+
+public abstract class BluntLeapText {
+
+  // The text for one of our keys: the game's language when there is a
+  // translation, else English. Never the bare key for a key we define.
+  public final static func Get(game: GameInstance, key: String) -> String {
+    let system: ref<LocalizationSystem> = LocalizationSystem.GetInstance(game);
+    let english: ref<BluntLeapEnglish>;
+    let entries: wref<inkHashMap>;
+    let entry: ref<LocalizationEntry>;
+    let hash: Uint64 = LocalizationEntry.Hash(key);
+    let text: String;
+    if IsDefined(system) {
+      text = system.GetText(key);
+      if StrLen(text) > 0 && NotEquals(text, key) {
+        return text;
+      };
+    };
+    english = new BluntLeapEnglish();
+    entries = english.GetEntries(EntryType.Interface);
+    if IsDefined(entries) && entries.KeyExist(hash) {
+      entry = entries.Get(hash) as LocalizationEntry;
+      if IsDefined(entry) {
+        return entry.GetVariant(PlayerGender.Male);
+      };
+    };
+    return key;
+  }
+
+  public final static func IsOurs(key: String) -> Bool {
+    return StrBeginsWith(key, "BluntLeap-");
+  }
+}
 
 public class BluntLeapLocalization extends ModLocalizationProvider {
 
@@ -104,11 +142,12 @@ public class BluntLeapEnglish extends ModLocalizationPackage {
     };
 
     // The lock line on Battering Ram's card while Dash is missing.
-    this.Text("BluntLeap-Perk-NeedsDash", "Requires " + this.Hl("Dash") + " (Reflexes) at level 2.");
+    // {0} is the Reflexes level that unlocks Dash.
+    this.Text("BluntLeap-Perk-NeedsDash", "Requires " + this.Hl("Dash") + " (Reflexes {0}) at level 2.");
 
-    // The line on the Dash box's card: where to get Dash, and why it is
-    // there. {0} is the Reflexes level that unlocks Dash.
-    this.Text("BluntLeap-Dash-Why", "Found in the Reflexes tree (Reflexes {0}). " + this.Hl("Battering Ram") + " needs both of its levels: the leap is a Dash that ends in a heavy hit.");
+    // The line on the Dash box's card: what Battering Ram needs, where to
+    // get it, and why.
+    this.Text("BluntLeap-Dash-Why", this.Hl("Battering Ram") + " needs " + this.Hl("Dash") + " at level 2 to unlock. Get it in the Reflexes tree (Reflexes {0}): the leap is a Dash that ends in a heavy hit.");
   }
 
   public final static func LeapKey(charged: Bool, air: Bool, bonus: Bool) -> String {

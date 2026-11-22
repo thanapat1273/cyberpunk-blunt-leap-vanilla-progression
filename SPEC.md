@@ -163,7 +163,7 @@ Every wrapper calls the original first. Nothing is replaced. Finisher leaps and 
 ### How the main pieces work
 
 - **Who has what.** The system reads the unlock rule once per loaded save. With rule (a) or (b) it asks the game whether the two perks are bought; with (c) or (d) it grants without perks. It then applies or removes four data packages on the player.
-- **The Dash requirement** is scripted, not a listed perk requirement: the perk screen cannot handle a required perk from another page. Without Dash at level 2 the Blunt leap node shows as locked, cannot be bought, and its tooltip says "Requires Dash (Reflexes) at level 2".
+- **The Dash requirement** is scripted, not a listed perk requirement: the perk screen cannot handle a required perk from another page. Without Dash at level 2 the Blunt leap node shows as locked, cannot be bought, and its tooltip says "Requires Dash (Reflexes 9) at level 2".
 - **Refunds.** 1.5 s after a save loads, and whenever Dash is sold: if the rule uses no perks, or Dash is required and missing, both perks are sold by force and their points come back.
 - **The long leap.** When the game refuses a leap, our wrapper allows it if the weapon is blunt, fully charged, the stronger leap is owned and an enemy is within the longer range. The leap itself repeats the game's own leap steps with that range.
 - **The stronger hit.** A fully charged leap arms a 2 s window. The effector runs on the player's strong melee hits at the `ProcessHitReaction` stage: the crit is known and the enemy has not picked its reaction yet.
@@ -218,7 +218,7 @@ Every wrapper calls the original first. Nothing is replaced. Finisher leaps and 
 - Hovering the box plays the game's perk-box hover: the icon grows 8% and a faint light sweeps across.
 - It opens Dash's own perk card (the same card as on the Reflexes page: name, video, both levels, its state), placed beside the box the way the game places a perk's card.
 - **Where our lines go:** the game's current perk card has no requirement row (its unlock-info fields point at nothing), so "Requires Dash" and the Dash card's line go into the card's unused text block under the level descriptions, re-tinted to the description colour (the game tints that block black).
-- The card shows no buy or sell hints, and adds one line: "Found in the Reflexes tree (Reflexes 9). Battering Ram needs both of its levels: the leap is a Dash that ends in a heavy hit."
+- The card shows no buy or sell hints, and adds one line (D40): "Battering Ram needs Dash at level 2 to unlock. Get it in the Reflexes tree (Reflexes 9): the leap is a Dash that ends in a heavy hit." The 9 is read from the game's data.
 - Hooks: two `cb func`s on `NewPerksScreenLogicController` (box hover), two methods added to `NewPerksCategoriesGameController` (show and hide the card), a field on `NewPerkDisplayData` (marks the card), and a wrapper on `PerkDisplayTooltipController.UpdateTooltipHints`.
 
 ### Crash fix: the perk screen (2026-11-22)
@@ -234,6 +234,20 @@ Every wrapper calls the original first. Nothing is replaced. Finisher leaps and 
 **Fix:**
 - `BluntLeap_BoxLayer` returns nothing again (as in the second build, which opened the page fine). The icon and sweep layers are looked up by name afterwards, with null checks.
 - The two card-line wrappers also check that the card's text block exists before using it.
+
+### Perk texts and the Dash card, fixed (2026-11-22, after the first look in game)
+
+**Seen in game:** both perk cards showed the bare keys (`BLUNTLEAP-PERK-LEAP-NAME`, `BluntLeap-Perk-Leap-Desc-NAB`, `BluntLeap-Perk-NeedsDash`). The Dash box's card showed Dash's own text with an Acquire hint and no line of ours.
+
+**Causes:**
+- **Texts:** the game reads a perk's name and description with `GetLocalizedText(record.Loc_name_key())` (`PlayerDevelopmentDataManager.GetNewPerkDisplayData`). That lookup does not find keys added through Codeware's localization: it returned the key itself.
+- **Dash card:** the card rebuilds the perk's display data while it draws (`UpdateVideo` calls `RefreshRuntimeData`, which makes a fresh `NewPerkDisplayData` from the perk type). Our mark sat on the old display data, so it was gone before the hints and the requirement line were drawn.
+
+**Fix:**
+- `BluntLeapText.Get(game, key)` (in `BluntLeap_Texts.reds`) reads our texts through Codeware's `LocalizationSystem.GetText`, and if that has nothing, straight from our English package. It never returns the bare key for a key we define.
+- A wrapper on `GetNewPerkDisplayData` replaces the name and description of our two perks with those texts. It uses the keys in the perk records, so the description variant for the current settings shows.
+- The card lines use `BluntLeapText.Get` too.
+- The Dash-box mark moved to the card's own data (`NewPerkTooltipData`), which the card does not rebuild.
 
 ### Not built
 

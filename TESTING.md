@@ -27,7 +27,7 @@ If the game stops at launch with a script error, send me `r6/logs/redscript_rCUR
 | # | Do | Expect |
 |---|---|---|
 | 2.1 | Without Breakthrough | Blunt Leap is locked |
-| 2.2 | With Breakthrough, without Dash level 2 | Blunt Leap is locked; tooltip says "Requires Dash (Reflexes) at level 2"; clicking does nothing |
+| 2.2 | With Breakthrough, without Dash level 2 | Blunt Leap is locked; tooltip says "Requires Dash (Reflexes 9) at level 2"; clicking does nothing |
 | 2.3 | Buy Dash to level 2, reopen Body | Blunt Leap can be bought; the Dash marker lights up |
 | 2.4 | Buy Blunt Leap | 1 point spent; the line from Breakthrough lights up; Stronger Leap becomes available |
 | 2.5 | Buy Stronger Leap | 1 point spent; second line lights up |
@@ -106,10 +106,10 @@ This build fixes the four findings from the first play test and adds the round 3
 | # | Do | Expect |
 |---|---|---|
 | 8.0 | Open the perk screen, then every attribute page, Body last | No crash (the previous build crashed here; fixed 2026-11-22) |
-| 8.1 | Hover both new perks | Names BATTERING RAM and THUNDER BREAKER; descriptions in the game's style, numbers filled in |
+| 8.1 | Hover both new perks | Names BATTERING RAM and THUNDER BREAKER (not BLUNTLEAP-PERK-...); descriptions in the game's style, numbers filled in |
 | 8.2 | In Mod Settings turn "Always charged" on, load the save, hover Battering Ram | Its description now says "fully charged Strong Attacks" |
 | 8.3 | Turn EMP off, load, hover Thunder Breaker | The EMP sentence is gone |
-| 8.4 | Hover the Dash box | The icon grows a little and a light sweeps across; Dash's own perk card opens beside it, with no buy or sell hint and a line saying where Dash is and why Battering Ram needs it |
+| 8.4 | Hover the Dash box | The icon grows a little and a light sweeps across; Dash's own perk card opens beside it, with no Acquire hint, and under Dash's levels the line "Battering Ram needs Dash at level 2 to unlock. Get it in the Reflexes tree (Reflexes 9): ..." |
 | 8.5 | Move off the Dash box | The card closes, the box settles back |
 | 8.6 | Mod Settings | Groups named "Battering Ram (the leap)" and "Thunder Breaker (full charge)" |
 

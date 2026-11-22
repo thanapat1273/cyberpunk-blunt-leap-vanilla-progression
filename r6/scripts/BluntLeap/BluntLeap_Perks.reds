@@ -144,10 +144,36 @@ public final func ResetNewPerks() -> Void {
   };
 }
 
+// Our two perks' name and description on the perk card. The game reads them
+// with GetLocalizedText, which does not find our keys, so they are read again
+// through BluntLeapText (BluntLeap_Texts.reds). The record's keys are used, so
+// the description variant the system chose for the settings shows.
+@wrapMethod(PlayerDevelopmentDataManager)
+public final func GetNewPerkDisplayData(perkType: gamedataNewPerkType, perkArea: gamedataNewPerkSlotType, proficiency: gamedataProficiencyType, attributeRecord: ref<Attribute_Record>, isRipperdoc: Bool, opt playerDevelopmentData: wref<PlayerDevelopmentData>) -> ref<NewPerkDisplayData> {
+  let data: ref<NewPerkDisplayData> = wrappedMethod(perkType, perkArea, proficiency, attributeRecord, isRipperdoc, playerDevelopmentData);
+  let record: ref<NewPerk_Record>;
+  // Perks of the game itself can never be ours: the added ones come after.
+  if !IsDefined(data) || !IsDefined(this.m_player) || EnumInt(perkType) <= EnumInt(gamedataNewPerkType.Invalid) {
+    return data;
+  };
+  record = RPGManager.GetNewPerkRecord(perkType);
+  if !IsDefined(record) {
+    return data;
+  };
+  if BluntLeapText.IsOurs(record.Loc_name_key()) {
+    data.m_localizedName = BluntLeapText.Get(this.m_player.GetGame(), record.Loc_name_key());
+  };
+  if BluntLeapText.IsOurs(record.Loc_desc_key()) {
+    data.m_localizedDescription = BluntLeapText.Get(this.m_player.GetGame(), record.Loc_desc_key());
+  };
+  return data;
+}
+
 // Marks the perk card opened from the Dash box on the Body page (see
-// BluntLeap_PerkScreen.reds), so its card can say where Dash is and why it is
-// there, and offer no buy or sell.
-@addField(NewPerkDisplayData)
+// BluntLeap_PerkScreen.reds), so its card can say what Battering Ram needs
+// and why, and offer no buy or sell. The mark sits on the card's data, not on
+// the perk's: the card rebuilds the perk's data while it draws.
+@addField(NewPerkTooltipData)
 public let bluntLeapDashBox: Bool;
 
 // The Dash requirement, part 3: the cards say what is missing.
@@ -162,6 +188,8 @@ private final func UpdateRequirements(playerDevelopmentData: wref<PlayerDevelopm
   let record: ref<NewPerk_Record>;
   let level: Int32 = 9;
   let block: wref<inkWidget>;
+  let player: wref<PlayerPuppet>;
+  let key: String;
   wrappedMethod(playerDevelopmentData, data);
   block = inkWidgetRef.Get(this.m_traitLevelGrowthText);
   if !IsDefined(data) || !IsDefined(block) {
@@ -169,18 +197,26 @@ private final func UpdateRequirements(playerDevelopmentData: wref<PlayerDevelopm
   };
   // Every other perk card: the block keeps the game's own colour.
   block.BindProperty(n"tintColor", n"PerkTooltip.levelColor");
-  if IsDefined(data.perkData) && data.perkData.bluntLeapDashBox {
-    record = RPGManager.GetNewPerkRecord(gamedataNewPerkType.Reflexes_Central_Milestone_2);
-    if IsDefined(record) && IsDefined(record.Tier()) {
-      level = record.Tier().RequiredAttributePoints();
+  if data.bluntLeapDashBox {
+    key = "BluntLeap-Dash-Why";
+  } else {
+    if IsDefined(playerDevelopmentData) && playerDevelopmentData.BluntLeap_BlockedByDash(data.perkType) {
+      key = "BluntLeap-Perk-NeedsDash";
     };
-    this.BluntLeap_CardLine(StrReplace(GetLocalizedText("BluntLeap-Dash-Why"), "{0}", IntToString(level)));
+  };
+  if StrLen(key) == 0 || !IsDefined(data.manager) {
     return;
   };
-  if IsDefined(playerDevelopmentData) && playerDevelopmentData.BluntLeap_BlockedByDash(data.perkType) {
-    this.BluntLeap_CardLine(GetLocalizedText("BluntLeap-Perk-NeedsDash"));
+  player = data.manager.GetPlayer();
+  if !IsDefined(player) {
     return;
   };
+  // The Reflexes level that unlocks Dash, from the game's data.
+  record = RPGManager.GetNewPerkRecord(gamedataNewPerkType.Reflexes_Central_Milestone_2);
+  if IsDefined(record) && IsDefined(record.Tier()) {
+    level = record.Tier().RequiredAttributePoints();
+  };
+  this.BluntLeap_CardLine(StrReplace(BluntLeapText.Get(player.GetGame(), key), "{0}", IntToString(level)));
 }
 
 // Shows one of our lines in the card's text block. The game tints that block
@@ -201,9 +237,9 @@ private final func BluntLeap_CardLine(text: String) -> Void {
 // hints on it.
 @wrapMethod(PerkDisplayTooltipController)
 private final func UpdateTooltipHints(data: ref<BasePerksMenuTooltipData>, perkData: ref<BasePerkDisplayData>) -> Void {
-  let newPerk: ref<NewPerkDisplayData> = perkData as NewPerkDisplayData;
+  let card: ref<NewPerkTooltipData> = data as NewPerkTooltipData;
   wrappedMethod(data, perkData);
-  if IsDefined(newPerk) && newPerk.bluntLeapDashBox {
+  if IsDefined(card) && card.bluntLeapDashBox {
     inkWidgetRef.SetVisible(this.m_inputHints, false);
   };
 }
