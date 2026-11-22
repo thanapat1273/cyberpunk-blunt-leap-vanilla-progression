@@ -51,11 +51,13 @@ To remove the mod: refund the two perks first (or switch the unlock rule to one 
 | `r6/tweaks/BluntLeap/` | TweakXL records: the leap ability, the distance bonus, the charge pool, the hit effector, the EMP, the two perks |
 | `TESTING.md` | the list for the first in-game test |
 | `art/` | the two perk icons (PNG at the game size, previews; an SVG of the Blunt leap icon) |
-| `archive/pc/mod/BluntLeap.archive` | the two perk icons packed for the game |
-| `tools/pack_icons.sh` | builds that archive from the two PNGs in `art/` |
+| `art/video/` | the two perk-card videos (Bink, 700 x 394, 30 fps, from in-game recordings) |
+| `archive/pc/mod/BluntLeap.archive` | the two perk icons and the two perk-card videos packed for the game |
+| `tools/pack_icons.sh` | builds that archive from the two PNGs in `art/` and the two videos in `art/video/` |
 | `tools/compile_check.sh` | compiles the scripts against a game install in a scratch folder |
 | `tools/make_icon.py` | builds the Blunt leap icon from the game icon it is based on |
 | `tools/make_stronger_icon.py` | builds the Stronger leap icon from the two game icons it is based on |
+| `tools/make_videos.py` | cuts the in-game recordings and encodes them into the two perk-card videos |
 
 ## Credits
 

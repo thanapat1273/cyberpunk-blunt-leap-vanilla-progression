@@ -190,6 +190,7 @@ NewPerks.BluntLeap_Leap:
   loc_name_key: BluntLeap-Perk-Leap-Name
   loc_desc_key: BluntLeap-Perk-Leap-Desc-NAB
   perkIcon: UIIcon.BluntLeap_Leap
+  binkPath: bluntleap\movies\perk_body_batteringram.bk2
   category: NewPerks.SimpleNewPerkCategory
   perkWeaponGroup: NewPerks.BluntsPerkWeaponGroup
   slot: NewPerks.Inbetween_Right_2
@@ -210,6 +211,7 @@ NewPerks.BluntLeap_Stronger:
   loc_name_key: BluntLeap-Perk-Stronger-Name
   loc_desc_key: BluntLeap-Perk-Stronger-Desc-ES
   perkIcon: UIIcon.BluntLeap_Stronger
+  binkPath: bluntleap\movies\perk_body_thunderbreaker.bk2
   category: NewPerks.SimpleNewPerkCategory
   perkWeaponGroup: NewPerks.BluntsPerkWeaponGroup
   slot: NewPerks.Central_Perk_2_3

@@ -128,7 +128,7 @@ public class BluntLeapEnglish extends ModLocalizationPackage {
         text += "A " + this.Hl("fully charged Leap Attack") + " reaches " + this.Hl("+{float_0}% farther") + " and lands faster. ";
         text += "Its hit can " + this.Hl("send the enemy flying") + " ({float_1}% chance, {float_2}% against heavy enemies)";
         if stagger == 1 {
-          text += " and staggers them otherwise.";
+          text += " or stagger them otherwise.";
         } else {
           text += ".";
         };

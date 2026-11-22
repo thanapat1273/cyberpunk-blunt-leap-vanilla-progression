@@ -112,6 +112,8 @@ This build fixes the four findings from the first play test and adds the round 3
 | 8.4 | Hover the Dash box | The icon grows a little and a light sweeps across; Dash's own perk card opens beside it, with no Acquire hint, and under Dash's levels the line "Battering Ram needs Dash at level 2 to unlock. Get it in the Reflexes tree (Reflexes 9): ..." |
 | 8.5 | Move off the Dash box | The card closes, the box settles back |
 | 8.6 | Mod Settings | Groups named "Battering Ram (the leap)" and "Thunder Breaker (full charge)" |
+| 8.7 | Hover Battering Ram and Thunder Breaker | Each card plays its video (the leap; the charged hit, throw and EMP) and loops it. The videos are Bink 1: if the space stays black, tell me |
+| 8.8 | Read Thunder Breaker's description | "...send the enemy flying (80% chance, 30% against heavy enemies) or stagger them otherwise." |
 
 ## Things to tell me
 

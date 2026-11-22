@@ -204,7 +204,7 @@ Every wrapper calls the original first. Nothing is replaced. Finisher leaps and 
 > **THUNDER BREAKER**
 > Holding a Strong Attack with Blunt Weapons now charges it up.
 >
-> A **fully charged Leap Attack** reaches **+50% farther** and lands faster. Its hit can **send the enemy flying** (80% chance, 30% against heavy enemies) and staggers them otherwise.
+> A **fully charged Leap Attack** reaches **+50% farther** and lands faster. Its hit can **send the enemy flying** (80% chance, 30% against heavy enemies) or stagger them otherwise.
 >
 > Crit Hits also release an **EMP blast** around the target.
 
@@ -248,6 +248,14 @@ Every wrapper calls the original first. Nothing is replaced. Finisher leaps and 
 - A wrapper on `GetNewPerkDisplayData` replaces the name and description of our two perks with those texts. It uses the keys in the perk records, so the description variant for the current settings shows.
 - The card lines use `BluntLeapText.Get` too.
 - The Dash-box mark moved to the card's own data (`NewPerkTooltipData`), which the card does not rebuild.
+
+### Perk card videos (2026-11-22, D41)
+
+- **Source:** the user's in-game recordings. Battering Ram uses seconds 7 to 18, Thunder Breaker seconds 14 to 25 (11 s each). The recordings are not in the repository.
+- **Format:** the same as the game's perk videos (`base\movies\tutorials\700x394\perk_*.bk2`): 700 x 394, 30 fps, no sound, about 1,000,000 bytes per second (11 MB each).
+- **Bink 1, not Bink 2:** the free RAD Video Tools only writes Bink 1 (its Bink 2 encoder needs a licence). The game's player (`bin/x64/bink2w64.dll`, 2020.09) checks for the Bink 1 headers `BIKf` to `BIKk` as well as Bink 2 up to `KB2j`; RAD writes `BIKk`. **Playback in game is not confirmed yet.**
+- **Quality:** encoded back to frames, the videos match the cut frames at about 39.5 dB PSNR. They are as sharp as the game's own perk videos, which are also 700 x 394. On a 1440p screen the card shows the video about 500 px wide, so it is shown smaller than it is.
+- **Built by:** `tools/make_videos.py` (ffmpeg cuts and scales; RAD encodes) into `art/video/`. `tools/pack_icons.sh` packs them uncompressed into the archive under `bluntleap\movies\`. The perk records name them in `binkPath`.
 
 ### Not built
 

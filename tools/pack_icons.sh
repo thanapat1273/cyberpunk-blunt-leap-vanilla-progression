@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Packs the two perk icons into archive/pc/mod/BluntLeap.archive.
+# Packs the two perk icons and the two perk-card videos into
+# archive/pc/mod/BluntLeap.archive.
 #
 #   tools/pack_icons.sh "<WolvenKit.CLI.exe>" "<template folder>" [work folder]
 #
@@ -19,10 +20,13 @@
 #      so the new texture has the game's own settings.
 #   3. Writes an atlas with those two parts, for all three resolution
 #      slots, pointing at bluntleap\gui\icons\blunt_leap_icons.xbm.
-#   4. Packs both files into the archive.
+#   4. Adds the videos in art/video/ (made by tools/make_videos.py) under
+#      bluntleap\movies\.
+#   5. Packs everything into the archive.
 #
 # The game data names the icons in r6/tweaks/BluntLeap/BluntLeap.yaml
-# (UIIcon.BluntLeap_Leap, UIIcon.BluntLeap_Stronger).
+# (UIIcon.BluntLeap_Leap, UIIcon.BluntLeap_Stronger), and the videos in the
+# two perk records (binkPath).
 #
 # If WolvenKit needs a private .NET, set DOTNET_ROOT before running.
 set -euo pipefail
@@ -92,6 +96,8 @@ PY
 "$WK" import "$(cygpath -w "$SRC/blunt_leap_icons.png")" -o "$(cygpath -w "$SRC")" --keep
 "$WK" convert d "$(cygpath -w "$SRC/blunt_leap_icons.inkatlas.json")"
 cp "$SRC/blunt_leap_icons.xbm" "$SRC/blunt_leap_icons.inkatlas" "$PACK/"
+mkdir -p "$WORK/pack/BluntLeap/bluntleap/movies"
+cp "$HERE"/art/video/*.bk2 "$WORK/pack/BluntLeap/bluntleap/movies/"
 "$WK" pack "$(cygpath -w "$WORK/pack/BluntLeap")" -o "$(cygpath -w "$WORK/out")"
 
 mkdir -p "$HERE/archive/pc/mod"
