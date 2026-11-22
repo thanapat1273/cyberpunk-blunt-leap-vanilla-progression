@@ -92,7 +92,7 @@ One setting: **"Always charged" mode**, **off by default**. Off: any heavy attac
 | Launch force | 20% (100% matches the Gorilla Arms knockout punch) |
 | Push follows the swing | On |
 | Stagger when not launched | Always |
-| Hit stop on landing | 0.1 s |
+| Hit stop on landing | 0.15 s (0.1 s until 2026-11-22, D44) |
 
 - **Never launched:** bosses, MaxTac and "massive" enemies.
 - **Why the EMP doesn't scale with the crit:** a fully charged crit leap already stacks strong attack ×1.5, full charge +33%, distance up to +50% and the crit itself, roughly four times a normal strong attack.
@@ -261,7 +261,7 @@ Every wrapper calls the original first. Nothing is replaced. Finisher leaps and 
 
 - **What happens in the game:** a held melee charge fills the weapon's `WeaponCharge` pool at 100 / `ChargeTime` points per second (`MeleeChargedHoldEvents.OnEnter`, `StartPool`). The pool fills in world time, so Sandevistan slows it. This is true of every melee charge in the game (katanas, blunt, Gorilla Arms, Mantis Blades, stun baton), so ours behaves like the game's.
 - **The game's only catch-up** is for gun fire rate (`CalcCycleTimeDeltaFactor`): under Sandevistan, 1 / dilation times 0.5 to 0.9 (`ProportionalClampF(1.0, 2.0, cycleTime, 0.5, 0.9)`).
-- **Setting** (Charge group): "Charge speed under Sandevistan", default **Vanilla**.
+- **Setting** (Charge group): "Charge speed under Sandevistan", default **Full** (Vanilla until 2026-11-22, D44).
   - Vanilla: unchanged.
   - Partial: the game's gun catch-up, with the charge time as the cycle time. For our charge times (0.5 to 1.2 s) that is about half of the slow-down made up.
   - Full: 1 / dilation, the same real time as without Sandevistan.

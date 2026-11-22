@@ -168,7 +168,7 @@ public class BluntLeapSettings extends IScriptable {
   @runtimeProperty("ModSettings.displayValues.Vanilla", "Vanilla")
   @runtimeProperty("ModSettings.displayValues.Partial", "Partial")
   @runtimeProperty("ModSettings.displayValues.Full", "Full")
-  public let sandevistanCharge: BluntLeapSandevistanCharge = BluntLeapSandevistanCharge.Vanilla;
+  public let sandevistanCharge: BluntLeapSandevistanCharge = BluntLeapSandevistanCharge.Full;
 
   @runtimeProperty("ModSettings.mod", "Blunt Leap")
   @runtimeProperty("ModSettings.category", "Charge")
@@ -282,7 +282,7 @@ public class BluntLeapSettings extends IScriptable {
   @runtimeProperty("ModSettings.step", "0.01")
   @runtimeProperty("ModSettings.min", "0.0")
   @runtimeProperty("ModSettings.max", "0.3")
-  public let hitStop: Float = 0.1;
+  public let hitStop: Float = 0.15;
 
   // --------------------------------------------------------- registration
 

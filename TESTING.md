@@ -117,7 +117,7 @@ This build fixes the four findings from the first play test and adds the round 3
 
 ## 9. Charge speed under Sandevistan (2026-11-22)
 
-Setting: Mod Settings, Blunt Leap, Charge, "Charge speed under Sandevistan" (default Vanilla). Use a bat; its charge takes about 1 s without Sandevistan. With "Write a log" on, each hold writes a "Charge (...)" line with what the mod sees (setting, Sandevistan on or off, the slow-down), and "rate set to" when it changes the speed. After testing, send me the `[Blunt Leap] Charge` lines from `bin/x64/plugins/cyber_engine_tweaks/gamelog.log`.
+Setting: Mod Settings, Blunt Leap, Charge, "Charge speed under Sandevistan" (default Full). Use a bat; its charge takes about 1 s without Sandevistan. With "Write a log" on, each hold writes a "Charge (...)" line with what the mod sees (setting, Sandevistan on or off, the slow-down), and "rate set to" when it changes the speed. After testing, send me the `[Blunt Leap] Charge` lines from `bin/x64/plugins/cyber_engine_tweaks/gamelog.log`.
 
 | # | Do | Expect |
 |---|---|---|
