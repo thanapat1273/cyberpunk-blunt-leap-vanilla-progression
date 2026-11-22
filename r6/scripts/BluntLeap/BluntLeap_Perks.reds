@@ -153,6 +153,10 @@ public let bluntLeapDashBox: Bool;
 // The Dash requirement, part 3: the cards say what is missing.
 //   - Battering Ram's card, while Dash is missing: "Requires Dash ...".
 //   - The Dash box's card: where to get Dash and why Battering Ram needs it.
+// The game's current perk card has no requirement row (the controller's
+// unlock-info fields point at nothing), so the line goes into the card's
+// text block under the level descriptions, which perk cards leave unused
+// (the game hides it again for every other card).
 @wrapMethod(PerkDisplayTooltipController)
 private final func UpdateRequirements(playerDevelopmentData: wref<PlayerDevelopmentData>, data: ref<NewPerkTooltipData>) -> Void {
   let record: ref<NewPerk_Record>;
@@ -161,21 +165,30 @@ private final func UpdateRequirements(playerDevelopmentData: wref<PlayerDevelopm
   if !IsDefined(data) {
     return;
   };
+  // Every other perk card: the block keeps the game's own colour.
+  inkWidgetRef.Get(this.m_traitLevelGrowthText).BindProperty(n"tintColor", n"PerkTooltip.levelColor");
   if IsDefined(data.perkData) && data.perkData.bluntLeapDashBox {
     record = RPGManager.GetNewPerkRecord(gamedataNewPerkType.Reflexes_Central_Milestone_2);
     if IsDefined(record) && IsDefined(record.Tier()) {
       level = record.Tier().RequiredAttributePoints();
     };
-    inkWidgetRef.SetVisible(this.m_unlockInfoWrapper, true);
-    inkTextRef.SetText(this.m_unlockPointsText, "");
-    inkTextRef.SetText(this.m_unlockPointsDesc, StrReplace(GetLocalizedText("BluntLeap-Dash-Why"), "{0}", IntToString(level)));
+    this.BluntLeap_CardLine(StrReplace(GetLocalizedText("BluntLeap-Dash-Why"), "{0}", IntToString(level)));
     return;
   };
   if IsDefined(playerDevelopmentData) && playerDevelopmentData.BluntLeap_BlockedByDash(data.perkType) {
-    inkWidgetRef.SetVisible(this.m_unlockInfoWrapper, true);
-    inkTextRef.SetText(this.m_unlockPointsText, "");
-    inkTextRef.SetText(this.m_unlockPointsDesc, GetLocalizedText("BluntLeap-Perk-NeedsDash"));
+    this.BluntLeap_CardLine(GetLocalizedText("BluntLeap-Perk-NeedsDash"));
+    return;
   };
+}
+
+// Shows one of our lines in the card's text block. The game tints that block
+// black (it was made to sit on a gold bar), so it is given the colour of the
+// card's descriptions while it shows our line.
+@addMethod(PerkDisplayTooltipController)
+private final func BluntLeap_CardLine(text: String) -> Void {
+  inkWidgetRef.Get(this.m_traitLevelGrowthText).BindProperty(n"tintColor", n"PerkTooltip.descriptionColour");
+  inkTextRef.SetText(this.m_traitLevelGrowthText, text);
+  inkTextRef.SetVisible(this.m_traitLevelGrowthText, true);
 }
 
 // The Dash box's card shows Dash, a perk of another page: no buy or sell

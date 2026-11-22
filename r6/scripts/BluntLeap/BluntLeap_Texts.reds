@@ -104,11 +104,11 @@ public class BluntLeapEnglish extends ModLocalizationPackage {
     };
 
     // The lock line on Battering Ram's card while Dash is missing.
-    this.Text("BluntLeap-Perk-NeedsDash", "Requires Dash (Reflexes) at level 2");
+    this.Text("BluntLeap-Perk-NeedsDash", "Requires " + this.Hl("Dash") + " (Reflexes) at level 2.");
 
     // The line on the Dash box's card: where to get Dash, and why it is
     // there. {0} is the Reflexes level that unlocks Dash.
-    this.Text("BluntLeap-Dash-Why", "Found in the Reflexes tree (Reflexes {0}). Battering Ram needs both of its levels: the leap is a Dash that ends in a heavy hit.");
+    this.Text("BluntLeap-Dash-Why", "Found in the Reflexes tree (Reflexes {0}). " + this.Hl("Battering Ram") + " needs both of its levels: the leap is a Dash that ends in a heavy hit.");
   }
 
   public final static func LeapKey(charged: Bool, air: Bool, bonus: Bool) -> String {

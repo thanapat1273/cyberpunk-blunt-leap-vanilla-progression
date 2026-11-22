@@ -217,6 +217,7 @@ Every wrapper calls the original first. Nothing is replaced. Finisher leaps and 
 **The Dash box's card:**
 - Hovering the box plays the game's perk-box hover: the icon grows 8% and a faint light sweeps across.
 - It opens Dash's own perk card (the same card as on the Reflexes page: name, video, both levels, its state), placed beside the box the way the game places a perk's card.
+- **Where our lines go:** the game's current perk card has no requirement row (its unlock-info fields point at nothing), so "Requires Dash" and the Dash card's line go into the card's unused text block under the level descriptions, re-tinted to the description colour (the game tints that block black).
 - The card shows no buy or sell hints, and adds one line: "Found in the Reflexes tree (Reflexes 9). Battering Ram needs both of its levels: the leap is a Dash that ends in a heavy hit."
 - Hooks: two `cb func`s on `NewPerksScreenLogicController` (box hover), two methods added to `NewPerksCategoriesGameController` (show and hide the card), a field on `NewPerkDisplayData` (marks the card), and a wrapper on `PerkDisplayTooltipController.UpdateTooltipHints`.
 
