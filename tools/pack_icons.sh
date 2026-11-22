@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Packs the perk icon into archive/pc/mod/BluntLeap.archive.
+# Packs the two perk icons into archive/pc/mod/BluntLeap.archive.
 #
 #   tools/pack_icons.sh "<WolvenKit.CLI.exe>" "<template folder>" [work folder]
 #
@@ -10,16 +10,19 @@
 # game files and are not kept in this repository.
 #
 # What it does:
-#   1. Pads art/blunt-leap-icon.png to a width and height divisible by 4
-#      (the texture compression needs that).
+#   1. Places the icons side by side on one texture, each in a cell whose
+#      width and height are divisible by 4 (the texture compression works on
+#      4 x 4 blocks, so no block is shared between two icons):
+#        art/blunt-leap-icon.png     part "blunt_leap"
+#        art/stronger-leap-icon.png  part "stronger_leap"
 #   2. Imports it over a copy of the game's perk texture ("import --keep"),
 #      so the new texture has the game's own settings.
-#   3. Writes an atlas with one part, "blunt_leap", for all three resolution
+#   3. Writes an atlas with those two parts, for all three resolution
 #      slots, pointing at bluntleap\gui\icons\blunt_leap_icons.xbm.
-#   4. Packs both into the archive.
+#   4. Packs both files into the archive.
 #
-# The game data names the icon in r6/tweaks/BluntLeap/BluntLeap.yaml
-# (UIIcon.BluntLeap_Leap).
+# The game data names the icons in r6/tweaks/BluntLeap/BluntLeap.yaml
+# (UIIcon.BluntLeap_Leap, UIIcon.BluntLeap_Stronger).
 #
 # If WolvenKit needs a private .NET, set DOTNET_ROOT before running.
 set -euo pipefail
@@ -39,33 +42,51 @@ mkdir -p "$SRC" "$PACK" "$WORK/out"
 
 cp "$TEMPLATE/perks_icons.xbm" "$SRC/blunt_leap_icons.xbm"
 
-ICON="$(cygpath -w "$HERE/art/blunt-leap-icon.png")" \
+ART="$(cygpath -w "$HERE/art")" \
 TEMPLATE_JSON="$(cygpath -w "$TEMPLATE/perks_icons.inkatlas.json")" \
 OUT_DIR="$(cygpath -w "$SRC")" \
 py -3.10 - <<PY
 import copy, json, os
 from PIL import Image
 
-icon = Image.open(os.environ["ICON"]).convert("RGBA")
-width = (icon.width + 3) // 4 * 4
-height = (icon.height + 3) // 4 * 4
-padded = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-padded.paste(icon, (0, 0))
-padded.save(os.path.join(os.environ["OUT_DIR"], "blunt_leap_icons.png"))
+icons = [
+    ("blunt_leap", "blunt-leap-icon.png"),
+    ("stronger_leap", "stronger-leap-icon.png"),
+]
+
+def up4(n):
+    return (n + 3) // 4 * 4
+
+images = [(part, Image.open(os.path.join(os.environ["ART"], name)).convert("RGBA")) for part, name in icons]
+cells = [up4(im.width) for _, im in images]
+width = sum(cells)
+height = up4(max(im.height for _, im in images))
+sheet = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+rects = []
+x = 0
+for (part, im), cell in zip(images, cells):
+    sheet.paste(im, (x, 0))
+    rects.append((part, x / width, 0.0, (x + im.width) / width, im.height / height))
+    x += cell
+sheet.save(os.path.join(os.environ["OUT_DIR"], "blunt_leap_icons.png"))
 
 atlas = json.load(open(os.environ["TEMPLATE_JSON"], encoding="utf-8"))
 # Built from pieces: a shell can turn a backslash followed by a letter into a
 # control character, which silently breaks the path.
 texture = chr(92).join(["bluntleap", "gui", "icons", "blunt_leap_icons.xbm"])
 slots = atlas["Data"]["RootChunk"]["slots"]["Elements"]
-part = copy.deepcopy(slots[0]["parts"][0])
-part["partName"]["\$value"] = "blunt_leap"
-part["clippingRectInUVCoords"].update({"Left": 0.0, "Top": 0.0, "Right": icon.width / width, "Bottom": icon.height / height})
+template_part = copy.deepcopy(slots[0]["parts"][0])
+parts = []
+for name, left, top, right, bottom in rects:
+    part = copy.deepcopy(template_part)
+    part["partName"]["\$value"] = name
+    part["clippingRectInUVCoords"].update({"Left": left, "Top": top, "Right": right, "Bottom": bottom})
+    parts.append(part)
 for slot in slots:
     slot["texture"]["DepotPath"]["\$value"] = texture
-    slot["parts"] = [copy.deepcopy(part)]
+    slot["parts"] = copy.deepcopy(parts)
 json.dump(atlas, open(os.path.join(os.environ["OUT_DIR"], "blunt_leap_icons.inkatlas.json"), "w", encoding="utf-8"), indent=2)
-print("icon", icon.size, "padded to", (width, height))
+print("texture", (width, height), "parts", [(r[0], round(r[1] * width), round(r[3] * width)) for r in rects])
 PY
 
 "$WK" import "$(cygpath -w "$SRC/blunt_leap_icons.png")" -o "$(cygpath -w "$SRC")" --keep

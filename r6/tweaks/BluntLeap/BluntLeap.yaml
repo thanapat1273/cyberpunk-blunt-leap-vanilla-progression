@@ -155,17 +155,21 @@ BluntLeap.EMP:
 # read who owns them and apply the packages above.
 # The Dash requirement is checked in script, not listed here: the perk screen
 # cannot handle a required perk from another page.
-# Blunt leap has its own icon (archive/pc/mod/BluntLeap.archive, built by
-# tools/pack_icons.sh). Stronger leap uses a placeholder from the game until
-# its icon is made.
+# Both perks have their own icons (archive/pc/mod/BluntLeap.archive, built by
+# tools/pack_icons.sh).
 # The name and description keys are plain text keys (the perk screen passes
 # them to GetLocalizedText); the texts are in BluntLeap_Texts.reds.
 
-# The Blunt leap icon: one part of our own small atlas.
+# The two perk icons: two parts of our own small atlas.
 UIIcon.BluntLeap_Leap:
   $type: UIIcon
   atlasResourcePath: bluntleap\gui\icons\blunt_leap_icons.inkatlas
   atlasPartName: blunt_leap
+
+UIIcon.BluntLeap_Stronger:
+  $type: UIIcon
+  atlasResourcePath: bluntleap\gui\icons\blunt_leap_icons.inkatlas
+  atlasPartName: stronger_leap
 
 # The numbers shown in the descriptions ({float_0}, {float_1}). The scripts
 # rewrite them from the settings.
@@ -203,7 +207,7 @@ NewPerks.BluntLeap_Stronger:
   enumComment: Blunt Leap mod, stronger fully charged leap
   loc_name_key: BluntLeap-Perk-Stronger-Name
   loc_desc_key: BluntLeap-Perk-Stronger-Desc
-  perkIcon: UIIcon.Reflexes_Central_Perk_2_3
+  perkIcon: UIIcon.BluntLeap_Stronger
   category: NewPerks.SimpleNewPerkCategory
   perkWeaponGroup: NewPerks.BluntsPerkWeaponGroup
   slot: NewPerks.Central_Perk_2_3

@@ -130,8 +130,9 @@ One setting: **"Always charged" mode**, **off by default**. Off: any heavy attac
 
 - Which Dash-requirement look to keep (§2), decided in testing.
 - Names for both perks.
-- An icon for Stronger leap (being made in a separate session).
-- **The Blunt leap icon is done** (D25, version 3): `art/blunt-leap-icon.png`, packed into `archive/pc/mod/BluntLeap.archive` by `tools/pack_icons.sh` and used by the perk (`UIIcon.BluntLeap_Leap`). Not yet seen in game.
+- **The Blunt leap icon is done** (D25, version 3): `art/blunt-leap-icon.png`, packed into `archive/pc/mod/BluntLeap.archive` by `tools/pack_icons.sh` and used by the perk (`UIIcon.BluntLeap_Leap`).
+- **The Stronger leap icon is done** (D29): `art/stronger-leap-icon.png`, the game's In Charge icon with its bullet replaced by Kinetic Absorption's fist (built by `tools/make_stronger_icon.py`), in the same archive and used by the perk (`UIIcon.BluntLeap_Stronger`).
+- Neither icon has been seen in game yet.
 
 ## 9. Build steps
 
@@ -139,7 +140,7 @@ One setting: **"Always charged" mode**, **off by default**. Off: any heavy attac
 |---|---|---|
 | 1 | Leap on all blunt weapons, range and hammer timing, distance bonus, charge pool and bar, "Always charged" mode, settings | written; compiles; **not yet tested in game** |
 | 2 | Stronger leap's effects: longer and faster leap, EMP on crit, send flying or stagger with swing direction, hit stop, full-charge feedback, scalable charge bonus | written; compiles; **not yet tested in game** |
-| 3 | The two perks (Perk Addition Framework), unlock rule a–d, refunds, Dash requirement, the two lines, texts, the Blunt leap icon | written; compiles; **not yet tested in game**; the Stronger leap icon is a placeholder |
+| 3 | The two perks (Perk Addition Framework), unlock rule a–d, refunds, Dash requirement, the two lines, texts, both perk icons | written; compiles; **not yet tested in game** |
 
 Per the user's decision (D27) all three steps are tested together, in one go. The test list is in [`TESTING.md`](TESTING.md).
 
@@ -147,7 +148,7 @@ Per the user's decision (D27) all three steps are tested together, in one go. Th
 
 | Part | File | Hooks |
 |---|---|---|
-| Data: leap ability, air leap, distance bonus, charge pool, impact effector, EMP attack, the two perks | `r6/tweaks/BluntLeap/BluntLeap.yaml` | 21 entries; 20 new records under `BluntLeap.`, `NewPerks.BluntLeap_` and `UIIcon.BluntLeap_`, and one append to `NewPerks.BodyAttributeData.perks` |
+| Data: leap ability, air leap, distance bonus, charge pool, impact effector, EMP attack, the two perks | `r6/tweaks/BluntLeap/BluntLeap.yaml` | 22 entries; 21 new records under `BluntLeap.`, `NewPerks.BluntLeap_` and `UIIcon.BluntLeap_`, and one append to `NewPerks.BodyAttributeData.perks` |
 | Settings (28) | `BluntLeap_Settings.reds` | none |
 | System: unlock rule, ownership, packages, refunds, charge, full-charge sound and rumble | `BluntLeap_System.reds` | none |
 | Leap: range and "Always charged" gate, long leap, distance leaped, hammer timing, charge carried through the leap | `BluntLeap_Leap.reds` | wraps `MeleeLeapDecisions.EnterCondition`, `MeleeLeapEvents.OnEnter` |
@@ -156,7 +157,7 @@ Per the user's decision (D27) all three steps are tested together, in one go. Th
 | Perks: Dash requirement, refunds, ownership changes, tooltip line | `BluntLeap_Perks.reds` | wraps `PlayerDevelopmentData.IsNewPerkUnlocked`, `CanNewPerkBeBought`, `BuyNewPerk`, `SellNewPerk`, `ForceSellNewPerk`, `ResetNewPerks`; `PerkDisplayTooltipController.UpdateRequirements` |
 | Perk screen: hidden nodes, the two lines, the Dash marker | `BluntLeap_PerkScreen.reds` | wraps `NewPerksScreenLogicController.AttachSlotControllers`, `BuildPerkTree`, `OnNewPerkBought`, `OnNewPerkSold` |
 | Texts (English) | `BluntLeap_Texts.reds` | none: Codeware localization |
-| The Blunt leap icon: a 128 x 116 texture and a one-part atlas | `archive/pc/mod/BluntLeap.archive` | none; two new files under `bluntleap\gui\icons\` |
+| The two perk icons: a 256 x 116 texture (each icon in its own 128 px cell) and a two-part atlas | `archive/pc/mod/BluntLeap.archive` | none; two new files under `bluntleap\gui\icons\` |
 
 Every wrapper calls the original first. Nothing is replaced. Finisher leaps and non-blunt weapons pass through untouched.
 
@@ -175,7 +176,6 @@ Every wrapper calls the original first. Nothing is replaced. Finisher leaps and 
 ### Not built
 
 - **Screen-edge pulse at full charge** (default Off in §5): no suitable game effect picked yet.
-- **The Stronger leap icon:** being designed in a separate session. Until then the perk uses the Mad Dash icon as a placeholder.
 - **The Dash marker is simple:** the Dash icon with a short line above the node, switchable in settings. The lock and tooltip line are always there.
 - **Perk names:** still the working names.
 

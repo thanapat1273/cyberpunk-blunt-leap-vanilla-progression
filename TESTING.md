@@ -20,7 +20,7 @@ If the game stops at launch with a script error, send me `r6/logs/redscript_rCUR
 | 1.2 | Open Mod Settings | "Blunt Leap" with four groups (General, Leap, Charge, Stronger leap) and 28 settings |
 | 1.3 | Open the Body perk page | Two new nodes on the row of Breakthrough: one right beside it (Blunt Leap), one further left (Stronger Leap). Two short lines join the three. A small Dash marker sits above Blunt Leap |
 | 1.4 | Hover both nodes | Name, description with numbers, no missing-text keys |
-| 1.5 | Look at the Blunt Leap node | It shows the bat icon, sharp and the same size as its neighbours. (Stronger Leap still shows a placeholder icon) |
+| 1.5 | Look at both new nodes | Blunt Leap shows the bat icon, Stronger Leap the charged fist; both sharp and the same size as their neighbours |
 
 ## 2. The perks (unlock rule "Perks, the first needs Dash", the default)
 
