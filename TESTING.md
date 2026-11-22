@@ -84,6 +84,23 @@ With Stronger Leap owned, or "Always charged" on, draw the weapon again first.
 | 6.2 | Change the unlock rule to "No perks: leap and stronger leap", load the save | Both perks refunded, the two nodes gone from the Body page, leap and stronger leap work |
 | 6.3 | Change back to the default, load | Nodes are back, nothing owned |
 
+## 7. Second build (2026-11-22): what to check again
+
+This build fixes the four findings from the first play test and adds the round 3 perk-screen look.
+
+| # | Do | Expect |
+|---|---|---|
+| 7.1 | Charge bar off. Draw a bat, block, aim, sprint, block again | The bar never shows |
+| 7.2 | Charge bar off. Switch between two blunt weapons several times, blocking in between | The bar never shows |
+| 7.3 | Charge bar on. Hold a strong attack to full, release at an enemy, then hold again only briefly | The second hold starts from empty; a short hold gives a normal leap, not a stronger one |
+| 7.4 | Charge bar on. Charge to full, then block before releasing | The bar empties |
+| 7.5 | Charge to full, switch weapons, switch back | The bar is empty |
+| 7.6 | Fully charged leap | Enemy thrown about 5 times less far than before (send-flying force 20%) |
+| 7.7 | Body page, Dash not at level 2 | Blunt Leap red like Stronger Leap; on hover the lock shows; a click gives "perks locked" and the Dash box and its wire flash red |
+| 7.8 | Body page, Dash at level 2 | Blunt Leap blue; the Dash box gold |
+| 7.9 | Look at the three wires | Five lines each, pads at both ends a little off the middle's level, like the game's own; grey-red, blue or gold by state |
+| 7.10 | Buy Breakthrough while the Body page is open, Dash missing | Blunt Leap stays red (this is the case that turned it blue before) |
+
 ## Things to tell me
 
 - Anything in the lists that did not match.

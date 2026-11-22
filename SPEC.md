@@ -2,7 +2,7 @@
 
 - **Status (2026-11-22):** design agreed with the user; all three build steps are written and compile; **nothing has been tested in game yet**. Working names throughout.
 - **Code:** `github.com/thanapat1273/cyberpunk-blunt-leap-vanilla-progression`
-- **Where things come from:** the user's own words are in [`DESIGN-NOTES.md`](DESIGN-NOTES.md) (decisions D1–D27; kept locally, not in the repository). The game facts are in [`RESEARCH.md`](RESEARCH.md).
+- **Where things come from:** the user's own words are in [`DESIGN-NOTES.md`](DESIGN-NOTES.md) (decisions D1–D34; kept locally, not in the repository). The game facts are in [`RESEARCH.md`](RESEARCH.md).
 - **If this file and the notes disagree, the notes win.** Fix this file.
 
 ---
@@ -25,7 +25,7 @@ It adds two perks to the Body tree:
 - **Lines:** two short ones drawn by the mod (Breakthrough to Blunt leap, Blunt leap to Stronger leap).
 - **Vanilla perks keep their places.**
 - **Requirements:** Blunt leap needs Breakthrough and, by default, Dash at level 2. Stronger leap needs Blunt leap.
-- **The Dash requirement's look:** both versions get built (lock and requirement text; Dash marker with the game's diagonal line). The user picks one during testing.
+- **The Dash requirement's look (D30–D33):** the game's locked look and the tooltip line, plus a small Dash box (the game's perk box at 60%) under Blunt leap, joined by the game's own wire. Switchable in settings ("Dash marker").
 
 ## 3. Unlock rule (one setting, applies at the next game start)
 
@@ -89,7 +89,7 @@ One setting: **"Always charged" mode**, **off by default**. Off: any heavy attac
 | EMP damage | 100% of the weapon's base hit, as Electrical. **Not scaled by the crit**, charge or distance. Never hurts V |
 | Launch chance | 80% |
 | Launch chance, Heavy archetypes | 30% |
-| Launch force | 100% |
+| Launch force | 20% (100% matches the Gorilla Arms knockout punch) |
 | Push follows the swing | On |
 | Stagger when not launched | Always |
 | Hit stop on landing | 0.1 s |
@@ -152,10 +152,10 @@ Per the user's decision (D27) all three steps are tested together, in one go. Th
 | Settings (28) | `BluntLeap_Settings.reds` | none |
 | System: unlock rule, ownership, packages, refunds, charge, full-charge sound and rumble | `BluntLeap_System.reds` | none |
 | Leap: range and "Always charged" gate, long leap, distance leaped, hammer timing, charge carried through the leap | `BluntLeap_Leap.reds` | wraps `MeleeLeapDecisions.EnterCondition`, `MeleeLeapEvents.OnEnter` |
-| Charge: pool in time, bar shown or hidden, bar flash, charge emptied after the attack | `BluntLeap_Charge.reds` | wraps `CrosshairGameController_Melee.OnPreIntro` and `UpdateResourceValue`, `MeleeChargedHoldEvents.OnEnter`, `MeleeAttackGenericEvents.ConsumeWeaponCharge` |
+| Charge: pool in time, bar shown or hidden, bar flash, charge emptied at draw, hold start, hold end and attack end | `BluntLeap_Charge.reds` | wraps `CrosshairGameController_Melee.OnPreIntro` and `UpdateResourceValue`, `MeleeChargedHoldEvents.OnEnter`, `OnExit`, `OnForcedExit`, `MeleeAttackGenericEvents.ConsumeWeaponCharge`, `OnExit`, `OnForcedExit` |
 | Stronger leap's hit: EMP, send flying, stagger, hit stop | `BluntLeap_Impact.reds` | none: an effector class named in a data record |
-| Perks: Dash requirement, refunds, ownership changes, tooltip line | `BluntLeap_Perks.reds` | wraps `PlayerDevelopmentData.IsNewPerkUnlocked`, `CanNewPerkBeBought`, `BuyNewPerk`, `SellNewPerk`, `ForceSellNewPerk`, `ResetNewPerks`; `PerkDisplayTooltipController.UpdateRequirements` |
-| Perk screen: hidden nodes, the two lines, the Dash marker | `BluntLeap_PerkScreen.reds` | wraps `NewPerksScreenLogicController.AttachSlotControllers`, `BuildPerkTree`, `OnNewPerkBought`, `OnNewPerkSold` |
+| Perks: Dash requirement, refunds, ownership changes, tooltip line | `BluntLeap_Perks.reds` | wraps `PlayerDevelopmentData.UnlockNewPerk`, `IsNewPerkUnlocked`, `CanNewPerkBeBought`, `BuyNewPerk`, `SellNewPerk`, `ForceSellNewPerk`, `ResetNewPerks`; `PerkDisplayTooltipController.UpdateRequirements` |
+| Perk screen: hidden nodes, the locked look, the three wires, the Dash box | `BluntLeap_PerkScreen.reds` | wraps `NewPerksScreenLogicController.AttachSlotControllers`, `BuildPerkTree`, `ReevaluatePerkAvailability`, `OnNewPerkUnlocked`, `OnNewPerkBought`, `OnNewPerkSold`, `IndicateUnmaxedPerksInPath`, `StopPathToTargetPerkAnimations` |
 | Texts (English) | `BluntLeap_Texts.reds` | none: Codeware localization |
 | The two perk icons: a 256 x 116 texture (each icon in its own 128 px cell) and a two-part atlas | `archive/pc/mod/BluntLeap.archive` | none; two new files under `bluntleap\gui\icons\` |
 
@@ -173,10 +173,27 @@ Every wrapper calls the original first. Nothing is replaced. Finisher leaps and 
   - Otherwise the hit's minimum severity is raised to 2 (stagger).
 - **Texts** come from Codeware's localization; the perk records name them by plain text key.
 
+### Second build (2026-11-22)
+
+**Fixes from the first play test (message 16):**
+
+- **Send-flying force:** default 20% (was 100%: far too strong).
+- **The charge bar showed although switched off.** The game's crosshair shows the bar again on every stance change (block, aim, sprint) whenever it once decided to show it. Now the bar is switched off at that decision, so stance changes cannot bring it back.
+- **The charge got stuck at full, and every leap became a stronger leap.** Two causes:
+  - A weapon keeps its entity when it is holstered and drawn again. The first build only remembered the last weapon drawn, so after a switch it lost track of its own charge and stopped emptying it.
+  - The game never empties a weapon's charge itself: it clears the player's pool instead, and turns the fallback decay off whenever a charge starts.
+  - **Now:** whether a charge is ours is read from the weapon itself (a blunt weapon whose record has no charge pool), and our modifiers are remembered per weapon. Ours is emptied when the weapon is drawn, when a hold starts, when a hold ends without an attack, and when the attack ends however it ends. A leap still carries its charge through.
+
+**Perk screen, round 3 (D30–D33):**
+
+- **Locked look:** while Dash is missing, Blunt leap is never put on the game's list of unlocked perks (new wrapper on `PlayerDevelopmentData.UnlockNewPerk`), and the screen forces the game's `Locked` state when it builds the page, re-checks it, or gets an "unlocked" message. A click on it flashes the Dash box and its wire red (`LockedHighlight`) until the pointer leaves.
+- **Wires:** the game's own wire pictures (`perks_new.inkatlas`: `wire_CPerk1_1_to_CPerk1_3` across, `wire_CPerk2_1_to_CPerk2_3` down), stretched in the middle only (nine-slice, 16 px kept at each end), so the pads and the jogs at both ends keep the game's shape. Each spans the gap between two box edges exactly (161.5 px across, 48 px down). Tinted by the game's `PerkWire.wireColor` style with the game's rule.
+- **Dash box:** the game's perk-box pictures (`Perk_Cell_*`) with `PerkCellBase.*` style bindings, at 60%, centred 48 px under Blunt leap; `Locked` without Dash, `Bought` with it. Not clickable.
+- Mockup: `notes/2026-11-22-proposal-perk-screen-v3.png` (local).
+
 ### Not built
 
 - **Screen-edge pulse at full charge** (default Off in §5): no suitable game effect picked yet.
-- **The Dash marker is simple:** the Dash icon with a short line above the node, switchable in settings. The lock and tooltip line are always there.
 - **Perk names:** still the working names.
 
 ### Deviations from §1–§6

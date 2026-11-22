@@ -41,14 +41,15 @@ public class BluntLeapSystem extends ScriptableSystem {
   private let m_hasLeap: Bool;
   private let m_hasStronger: Bool;
 
-  // The one weapon that carries our charge pool: the one in hand. A weapon is
-  // a new object each time it is drawn, so one slot is enough.
-  private let m_chargeWeapon: EntityID;
-  private let m_chargeTime: Float;
-  private let m_chargeTimeMod: ref<gameStatModifierData>;
-  private let m_chargeMaxMod: ref<gameStatModifierData>;
-  private let m_chargeBonusMod: ref<gameStatModifierData>;
-  private let m_chargeListener: ref<BluntLeapChargeListener>;
+  // Every weapon we gave a charge pool, with what we added to it (same index
+  // in each array).
+  private let m_chargeIds: array<EntityID>;
+  private let m_chargeTimes: array<Float>;
+  private let m_chargeBonuses: array<Float>;
+  private let m_chargeTimeMods: array<ref<gameStatModifierData>>;
+  private let m_chargeMaxMods: array<ref<gameStatModifierData>>;
+  private let m_chargeBonusMods: array<ref<gameStatModifierData>>;
+  private let m_chargeListeners: array<ref<BluntLeapChargeListener>>;
 
   // A stronger leap is on its way: its hit gets the extra effects until this time.
   private let m_strongUntil: Float;
@@ -73,6 +74,7 @@ public class BluntLeapSystem extends ScriptableSystem {
   private final func OnPlayerAttach(request: ref<PlayerAttachRequest>) -> Void {
     let callback: ref<BluntLeapValidateCallback> = new BluntLeapValidateCallback();
     callback.system = this;
+    this.ForgetCharges();
     this.Refresh();
     GameInstance.GetDelaySystem(this.GetGameInstance()).DelayCallback(callback, 1.5, false);
   }
@@ -307,6 +309,14 @@ public class BluntLeapSystem extends ScriptableSystem {
   }
 
   // ------------------------------------------------------------- charge
+  //
+  // Which charge is ours is decided from the weapon itself, never from memory
+  // of the last weapon drawn: a weapon keeps its entity when it is holstered
+  // and drawn again, so several weapons can carry our pool at once.
+  //   - ours: a blunt weapon whose game record has no charge pool;
+  //   - theirs: stun batons and Gorilla Arms, which have their own.
+  // The modifiers we add are remembered per weapon, so they can be changed
+  // or taken off again.
 
   // Blunt weapons charge only when the charge means something: in "Always
   // charged" mode, or once the stronger leap is available.
@@ -315,13 +325,36 @@ public class BluntLeapSystem extends ScriptableSystem {
     return this.m_hasLeap && (settings.alwaysCharged || this.m_hasStronger);
   }
 
-  // True if this weapon carries the charge pool we added (not one of its own).
-  public final func OwnsChargeOf(weapon: wref<WeaponObject>) -> Bool {
-    return IsDefined(weapon) && this.OwnsChargeEntity(weapon.GetEntityID());
+  // True if the weapon's game record gives it a charge pool of its own.
+  public final static func HasOwnCharge(weapon: wref<WeaponObject>) -> Bool {
+    let record: ref<WeaponItem_Record>;
+    let pools: array<wref<StatPool_Record>>;
+    let i: Int32 = 0;
+    if !IsDefined(weapon) {
+      return false;
+    };
+    record = TweakDBInterface.GetWeaponItemRecord(ItemID.GetTDBID(weapon.GetItemID()));
+    if !IsDefined(record) {
+      return false;
+    };
+    record.StatPools(pools);
+    while i < ArraySize(pools) {
+      if IsDefined(pools[i]) && Equals(pools[i].StatPoolType(), gamedataStatPoolType.WeaponCharge) {
+        return true;
+      };
+      i += 1;
+    };
+    return false;
   }
 
-  public final func OwnsChargeEntity(id: EntityID) -> Bool {
-    return EntityID.IsDefined(this.m_chargeWeapon) && id == this.m_chargeWeapon;
+  // A weapon whose charge, if it has one, is ours.
+  public final static func IsOurChargeType(weapon: wref<WeaponObject>) -> Bool {
+    return IsDefined(weapon) && WeaponObject.IsBlunt(weapon.GetItemID()) && !BluntLeapSystem.HasOwnCharge(weapon);
+  }
+
+  // True if this weapon carries a charge pool we added.
+  public final func OwnsChargeOf(weapon: wref<WeaponObject>) -> Bool {
+    return BluntLeapSystem.IsOurChargeType(weapon) && GameInstance.GetStatPoolsSystem(weapon.GetGame()).IsStatPoolAdded(Cast<StatsObjectID>(weapon.GetEntityID()), gamedataStatPoolType.WeaponCharge);
   }
 
   // 0.0 to 1.0, the same measure the game's damage rule uses.
@@ -333,6 +366,16 @@ public class BluntLeapSystem extends ScriptableSystem {
       return 0.0;
     };
     return WeaponObject.GetWeaponChargeNormalized(weapon);
+  }
+
+  // Empties a charge we added. The game's own code never empties it: it
+  // clears the player's pool instead of the weapon's, and turns the slow
+  // fallback decay off whenever a charge starts.
+  public final func ClearCharge(weapon: wref<WeaponObject>) -> Void {
+    if !this.OwnsChargeOf(weapon) {
+      return;
+    };
+    GameInstance.GetStatPoolsSystem(weapon.GetGame()).RequestSettingStatPoolValue(Cast<StatsObjectID>(weapon.GetEntityID()), gamedataStatPoolType.WeaponCharge, 0.0, null, true);
   }
 
   private final func ChargeTimeFor(weapon: wref<WeaponObject>) -> Float {
@@ -351,99 +394,167 @@ public class BluntLeapSystem extends ScriptableSystem {
     return settings.chargeOneHanded;
   }
 
-  // Gives the blunt weapon in hand a charge pool and a charge time, unless it
-  // has its own (stun batons, Gorilla Arms). Returns true if the weapon's
-  // charge is ours. Called when the weapon's crosshair appears and again when
-  // a strong attack starts to be held.
+  private final func ChargeIndex(id: EntityID) -> Int32 {
+    let i: Int32 = 0;
+    while i < ArraySize(this.m_chargeIds) {
+      if this.m_chargeIds[i] == id {
+        return i;
+      };
+      i += 1;
+    };
+    return -1;
+  }
+
+  // Forget every weapon (a save was loaded: all weapons are new).
+  private final func ForgetCharges() -> Void {
+    ArrayClear(this.m_chargeIds);
+    ArrayClear(this.m_chargeTimes);
+    ArrayClear(this.m_chargeBonuses);
+    ArrayClear(this.m_chargeTimeMods);
+    ArrayClear(this.m_chargeMaxMods);
+    ArrayClear(this.m_chargeBonusMods);
+    ArrayClear(this.m_chargeListeners);
+  }
+
+  // Gives the blunt weapon in hand our charge pool and charge time when the
+  // charge is wanted, and takes them off when it is not. Returns true when
+  // the weapon has our charge afterwards. Called when the weapon's crosshair
+  // appears and again when a strong attack starts to be held.
   public final func PrepareCharge(weapon: wref<WeaponObject>) -> Bool {
-    if !IsDefined(weapon) {
-      return false;
-    };
-    let game: GameInstance = weapon.GetGame();
-    let id: EntityID = weapon.GetEntityID();
-    let statsId: StatsObjectID = Cast<StatsObjectID>(id);
-    let stats: ref<StatsSystem> = GameInstance.GetStatsSystem(game);
-    let pools: ref<StatPoolsSystem> = GameInstance.GetStatPoolsSystem(game);
+    let game: GameInstance;
+    let id: EntityID;
+    let statsId: StatsObjectID;
+    let stats: ref<StatsSystem>;
+    let pools: ref<StatPoolsSystem>;
     let settings: ref<BluntLeapSettings> = this.Settings();
+    let index: Int32;
+    let hasPool: Bool;
     let time: Float;
+    let bonus: Float;
+    let timeMod: ref<gameStatModifierData>;
+    let maxMod: ref<gameStatModifierData>;
+    let bonusMod: ref<gameStatModifierData>;
+    let listener: ref<BluntLeapChargeListener>;
 
-    if this.OwnsChargeOf(weapon) {
-      if !this.ChargeWanted() {
+    if !BluntLeapSystem.IsOurChargeType(weapon) {
+      return false;
+    };
+    game = weapon.GetGame();
+    id = weapon.GetEntityID();
+    statsId = Cast<StatsObjectID>(id);
+    stats = GameInstance.GetStatsSystem(game);
+    pools = GameInstance.GetStatPoolsSystem(game);
+    index = this.ChargeIndex(id);
+    hasPool = pools.IsStatPoolAdded(statsId, gamedataStatPoolType.WeaponCharge);
+
+    if !this.ChargeWanted() {
+      if hasPool || index >= 0 {
         this.ReleaseCharge(weapon);
-        return false;
       };
-      // Follow a changed charge-time setting.
-      time = this.ChargeTimeFor(weapon);
-      if AbsF(time - this.m_chargeTime) > 0.001 {
-        stats.RemoveModifier(statsId, this.m_chargeTimeMod);
-        this.m_chargeTimeMod = RPGManager.CreateStatModifier(gamedataStatType.ChargeTime, gameStatModifierType.Additive, time);
-        stats.AddModifier(statsId, this.m_chargeTimeMod);
-        this.m_chargeTime = time;
-      };
-      return true;
+      return false;
     };
 
-    if !this.ChargeWanted() || !WeaponObject.IsBlunt(weapon.GetItemID()) {
-      return false;
-    };
-    // A weapon with its own charge keeps it untouched.
-    if pools.IsStatPoolAdded(statsId, gamedataStatPoolType.WeaponCharge) || stats.GetStatValue(statsId, gamedataStatType.ChargeTime) > 0.0 {
-      return false;
+    // Remembered, but the entity lost our pool: it is a new weapon object.
+    if index >= 0 && !hasPool {
+      this.ReleaseCharge(weapon);
+      index = -1;
     };
 
     time = this.ChargeTimeFor(weapon);
-    this.m_chargeTimeMod = RPGManager.CreateStatModifier(gamedataStatType.ChargeTime, gameStatModifierType.Additive, time);
-    stats.AddModifier(statsId, this.m_chargeTimeMod);
-    this.m_chargeMaxMod = null;
-    if stats.GetStatValue(statsId, gamedataStatType.Charge) <= 0.0 {
-      // The pool's size comes from this stat; charged weapons have 100.
-      this.m_chargeMaxMod = RPGManager.CreateStatModifier(gamedataStatType.Charge, gameStatModifierType.Additive, 100.0);
-      stats.AddModifier(statsId, this.m_chargeMaxMod);
+    bonus = settings.chargeBonus;
+
+    if index < 0 {
+      timeMod = RPGManager.CreateStatModifier(gamedataStatType.ChargeTime, gameStatModifierType.Additive, time);
+      stats.AddModifier(statsId, timeMod);
+      maxMod = null;
+      if stats.GetStatValue(statsId, gamedataStatType.Charge) <= 0.0 {
+        // The pool's size comes from this stat; charged weapons have 100.
+        maxMod = RPGManager.CreateStatModifier(gamedataStatType.Charge, gameStatModifierType.Additive, 100.0);
+        stats.AddModifier(statsId, maxMod);
+      };
+      bonusMod = this.BonusModifier(bonus);
+      if IsDefined(bonusMod) {
+        stats.AddModifier(statsId, bonusMod);
+      };
+      if !hasPool {
+        pools.RequestAddingStatPool(statsId, t"BluntLeap.ChargePool", true);
+      };
+      listener = new BluntLeapChargeListener();
+      listener.system = this;
+      pools.RequestRegisteringListener(statsId, gamedataStatPoolType.WeaponCharge, listener);
+      ArrayPush(this.m_chargeIds, id);
+      ArrayPush(this.m_chargeTimes, time);
+      ArrayPush(this.m_chargeBonuses, bonus);
+      ArrayPush(this.m_chargeTimeMods, timeMod);
+      ArrayPush(this.m_chargeMaxMods, maxMod);
+      ArrayPush(this.m_chargeBonusMods, bonusMod);
+      ArrayPush(this.m_chargeListeners, listener);
+      this.Log("Charge added to the weapon in hand, time " + FloatToStringPrec(time, 2) + " s");
+      return true;
     };
-    // The game's charged-attack bonus is a third of the charge multiplier
-    // (0.25 on melee weapons, so +33% at full charge). Scale it to the setting.
-    this.m_chargeBonusMod = null;
-    if AbsF(settings.chargeBonus - 33.0) > 0.5 {
-      this.m_chargeBonusMod = RPGManager.CreateStatModifier(gamedataStatType.ChargeMultiplier, gameStatModifierType.Multiplier, settings.chargeBonus / 33.25);
-      stats.AddModifier(statsId, this.m_chargeBonusMod);
+
+    // Known weapon: follow changed settings.
+    if AbsF(time - this.m_chargeTimes[index]) > 0.001 {
+      stats.RemoveModifier(statsId, this.m_chargeTimeMods[index]);
+      this.m_chargeTimeMods[index] = RPGManager.CreateStatModifier(gamedataStatType.ChargeTime, gameStatModifierType.Additive, time);
+      stats.AddModifier(statsId, this.m_chargeTimeMods[index]);
+      this.m_chargeTimes[index] = time;
     };
-    pools.RequestAddingStatPool(statsId, t"BluntLeap.ChargePool", true);
-    this.m_chargeListener = new BluntLeapChargeListener();
-    this.m_chargeListener.system = this;
-    pools.RequestRegisteringListener(statsId, gamedataStatPoolType.WeaponCharge, this.m_chargeListener);
-    this.m_chargeWeapon = id;
-    this.m_chargeTime = time;
-    this.Log("Charge added to the weapon in hand, time " + FloatToStringPrec(time, 2) + " s");
+    if AbsF(bonus - this.m_chargeBonuses[index]) > 0.01 {
+      if IsDefined(this.m_chargeBonusMods[index]) {
+        stats.RemoveModifier(statsId, this.m_chargeBonusMods[index]);
+      };
+      this.m_chargeBonusMods[index] = this.BonusModifier(bonus);
+      if IsDefined(this.m_chargeBonusMods[index]) {
+        stats.AddModifier(statsId, this.m_chargeBonusMods[index]);
+      };
+      this.m_chargeBonuses[index] = bonus;
+    };
     return true;
   }
 
-  // Takes our pool and stats off the weapon again.
+  // The game's charged-attack bonus is a third of the charge multiplier
+  // (0.25 on melee weapons, so +33% at full charge). Scaled to the setting.
+  private final func BonusModifier(bonus: Float) -> ref<gameStatModifierData> {
+    if AbsF(bonus - 33.0) <= 0.5 {
+      return null;
+    };
+    return RPGManager.CreateStatModifier(gamedataStatType.ChargeMultiplier, gameStatModifierType.Multiplier, bonus / 33.25);
+  }
+
+  // Takes our pool and modifiers off a weapon.
   private final func ReleaseCharge(weapon: wref<WeaponObject>) -> Void {
     let statsId: StatsObjectID = Cast<StatsObjectID>(weapon.GetEntityID());
     let stats: ref<StatsSystem> = GameInstance.GetStatsSystem(weapon.GetGame());
     let pools: ref<StatPoolsSystem> = GameInstance.GetStatPoolsSystem(weapon.GetGame());
-    if IsDefined(this.m_chargeListener) {
-      pools.RequestUnregisteringListener(statsId, gamedataStatPoolType.WeaponCharge, this.m_chargeListener);
+    let index: Int32 = this.ChargeIndex(weapon.GetEntityID());
+    if index >= 0 {
+      if IsDefined(this.m_chargeListeners[index]) {
+        pools.RequestUnregisteringListener(statsId, gamedataStatPoolType.WeaponCharge, this.m_chargeListeners[index]);
+      };
+      if IsDefined(this.m_chargeTimeMods[index]) {
+        stats.RemoveModifier(statsId, this.m_chargeTimeMods[index]);
+      };
+      if IsDefined(this.m_chargeMaxMods[index]) {
+        stats.RemoveModifier(statsId, this.m_chargeMaxMods[index]);
+      };
+      if IsDefined(this.m_chargeBonusMods[index]) {
+        stats.RemoveModifier(statsId, this.m_chargeBonusMods[index]);
+      };
+      ArrayErase(this.m_chargeIds, index);
+      ArrayErase(this.m_chargeTimes, index);
+      ArrayErase(this.m_chargeBonuses, index);
+      ArrayErase(this.m_chargeTimeMods, index);
+      ArrayErase(this.m_chargeMaxMods, index);
+      ArrayErase(this.m_chargeBonusMods, index);
+      ArrayErase(this.m_chargeListeners, index);
     };
-    pools.RequestRemovingStatPool(statsId, gamedataStatPoolType.WeaponCharge);
-    if IsDefined(this.m_chargeTimeMod) {
-      stats.RemoveModifier(statsId, this.m_chargeTimeMod);
+    if pools.IsStatPoolAdded(statsId, gamedataStatPoolType.WeaponCharge) {
+      pools.RequestRemovingStatPool(statsId, gamedataStatPoolType.WeaponCharge);
     };
-    if IsDefined(this.m_chargeMaxMod) {
-      stats.RemoveModifier(statsId, this.m_chargeMaxMod);
-    };
-    if IsDefined(this.m_chargeBonusMod) {
-      stats.RemoveModifier(statsId, this.m_chargeBonusMod);
-    };
-    this.m_chargeListener = null;
-    this.m_chargeTimeMod = null;
-    this.m_chargeMaxMod = null;
-    this.m_chargeBonusMod = null;
-    this.m_chargeTime = 0.0;
-    this.m_chargeWeapon = new EntityID();
   }
 
-  // The charge we added has just become full: sound and rumble. The bar's
+  // A charge we added has just become full: sound and rumble. The bar's
   // flash is done by the crosshair itself (BluntLeap_Charge.reds).
   public final func OnFullCharge() -> Void {
     let player: ref<PlayerPuppet> = GetPlayer(this.GetGameInstance());

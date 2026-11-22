@@ -237,11 +237,11 @@ public class BluntLeapSettings extends IScriptable {
   @runtimeProperty("ModSettings.category", "Stronger leap")
   @runtimeProperty("ModSettings.category.order", "4")
   @runtimeProperty("ModSettings.displayName", "Send flying: force (%)")
-  @runtimeProperty("ModSettings.description", "How hard the enemy is thrown. 100 matches the Gorilla Arms knockout punch.")
-  @runtimeProperty("ModSettings.step", "10.0")
-  @runtimeProperty("ModSettings.min", "10.0")
+  @runtimeProperty("ModSettings.description", "How hard the enemy is thrown. 20 keeps it believable; 100 matches the Gorilla Arms knockout punch, which throws enemies very far.")
+  @runtimeProperty("ModSettings.step", "5.0")
+  @runtimeProperty("ModSettings.min", "5.0")
   @runtimeProperty("ModSettings.max", "300.0")
-  public let launchForce: Float = 100.0;
+  public let launchForce: Float = 20.0;
 
   @runtimeProperty("ModSettings.mod", "Blunt Leap")
   @runtimeProperty("ModSettings.category", "Stronger leap")

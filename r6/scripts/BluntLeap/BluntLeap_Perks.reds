@@ -56,6 +56,19 @@ public final func BluntLeap_Refund(perkType: gamedataNewPerkType) -> Bool {
   return sold;
 }
 
+// The Dash requirement, part 0: while Dash is missing the perk is never put
+// on the game's list of unlocked perks. Otherwise the game tells the open
+// perk screen "perk unlocked" (for example right after Breakthrough is
+// bought) and the node turns blue without asking any other check. When Dash
+// is bought the game unlocks it as usual the next time the Body page opens.
+@wrapMethod(PlayerDevelopmentData)
+public final func UnlockNewPerk(perkType: gamedataNewPerkType) -> Bool {
+  if this.BluntLeap_BlockedByDash(perkType) {
+    return false;
+  };
+  return wrappedMethod(perkType);
+}
+
 // The Dash requirement, part 1: the perk shows as locked.
 @wrapMethod(PlayerDevelopmentData)
 public final const func IsNewPerkUnlocked(perkType: gamedataNewPerkType) -> Bool {

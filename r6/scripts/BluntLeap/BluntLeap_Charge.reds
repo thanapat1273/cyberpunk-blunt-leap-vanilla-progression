@@ -1,32 +1,52 @@
 // Blunt Leap: charging for blunt weapons that have no charge of their own.
 //
 // The pool is of the game's WeaponCharge type, so the game's own code does
-// the work: MeleeChargedHoldEvents fills it while the attack is held, the
-// melee crosshair draws its bar, and the damage rule adds the charged bonus.
-// These hooks only make sure the pool is there in time, show or hide the
-// bar, flash it when full, and empty the pool after the attack.
+// most of the work: MeleeChargedHoldEvents fills it while the attack is held,
+// the melee crosshair draws its bar, and the damage rule adds the charged
+// bonus. These hooks make sure the pool is there in time, show or hide the
+// bar, flash it when full, and empty the pool again.
+//
+// Emptying matters: the game's own code never empties a weapon's charge (it
+// clears the player's pool instead), and it switches the slow fallback decay
+// off whenever a charge starts. Without these hooks a charge stays full for
+// good. So ours is emptied:
+//   - when the weapon is drawn;
+//   - when a strong attack starts to be held (each hold starts from zero);
+//   - when the hold ends without an attack (block, dodge, hit, release);
+//   - when the attack ends, however it ends.
+// A leap carries its charge through on its own (BluntLeap_Leap.reds).
 
-// The weapon's crosshair appears: the earliest sure moment the weapon is in
-// hand. The original decides here, once, whether to show the charge bar.
+// The weapon's crosshair appears: the weapon has just been drawn. The
+// original decides here, once, whether to show the charge bar; later stance
+// changes (block, aim, sprint) show it again if m_displayChargeBar is true.
 @wrapMethod(CrosshairGameController_Melee)
 protected cb func OnPreIntro() -> Bool {
   let weapon: ref<WeaponObject> = this.GetWeaponItemObject() as WeaponObject;
   let system: ref<BluntLeapSystem>;
   let pools: ref<StatPoolsSystem>;
+  let ourType: Bool = false;
   let ours: Bool = false;
   let result: Bool;
 
   if IsDefined(weapon) {
     system = BluntLeapSystem.Get(weapon.GetGame());
     if IsDefined(system) {
+      ourType = BluntLeapSystem.IsOurChargeType(weapon);
       ours = system.PrepareCharge(weapon);
+      if ours {
+        system.ClearCharge(weapon);
+      };
     };
   };
 
   result = wrappedMethod();
 
-  if ours {
-    if !system.Settings().chargeBar {
+  if ourType {
+    if !ours || !system.Settings().chargeBar {
+      // No bar for this weapon. Cleared here too, so the game's stance
+      // changes cannot bring it back (the original may have seen a pool that
+      // is about to be removed, or one the setting hides).
+      this.m_displayChargeBar = false;
       this.m_chargeBar.SetVisible(false);
     } else {
       if !this.m_displayChargeBar {
@@ -38,9 +58,9 @@ protected cb func OnPreIntro() -> Bool {
         this.m_meleeResourcePoolListener = new MeleeResourcePoolListener();
         this.m_meleeResourcePoolListener.Bind(this);
         pools.RequestRegisteringListener(Cast<StatsObjectID>(this.m_weaponID), gamedataStatPoolType.WeaponCharge, this.m_meleeResourcePoolListener);
-        this.SetChargeScale(0.0);
         this.m_chargeBar.SetVisible(true);
       };
+      this.SetChargeScale(0.0);
     };
   };
   return result;
@@ -50,19 +70,19 @@ protected cb func OnPreIntro() -> Bool {
 @wrapMethod(CrosshairGameController_Melee)
 public func UpdateResourceValue(oldValue: Float, newValue: Float, percToPoints: Float) -> Void {
   let system: ref<BluntLeapSystem>;
-  let player: ref<GameObject>;
+  let weapon: ref<WeaponObject>;
   let pulse: ref<inkAnimDef>;
   let scale: ref<inkAnimScale>;
   wrappedMethod(oldValue, newValue, percToPoints);
-  if newValue < 99.9 || oldValue >= 99.9 || !IsDefined(this.m_chargeBar) {
+  if newValue < 99.9 || oldValue >= 99.9 || !IsDefined(this.m_chargeBar) || !this.m_displayChargeBar {
     return;
   };
-  player = this.GetPlayerControlledObject();
-  if !IsDefined(player) {
+  weapon = this.GetWeaponItemObject() as WeaponObject;
+  if !IsDefined(weapon) {
     return;
   };
-  system = BluntLeapSystem.Get(player.GetGame());
-  if !IsDefined(system) || !system.OwnsChargeEntity(this.m_weaponID) || !system.Settings().fullFlash {
+  system = BluntLeapSystem.Get(weapon.GetGame());
+  if !IsDefined(system) || !system.OwnsChargeOf(weapon) || !system.Settings().fullFlash {
     return;
   };
   scale = new inkAnimScale();
@@ -77,24 +97,59 @@ public func UpdateResourceValue(oldValue: Float, newValue: Float, percToPoints: 
 }
 
 // A strong attack starts to be held. Second chance to prepare the weapon
-// (settings changed with the weapon in hand), before the original starts
-// the charge.
+// (settings changed with the weapon in hand), and the charge starts from
+// zero, before the original starts filling it.
 @wrapMethod(MeleeChargedHoldEvents)
 public func OnEnter(stateContext: ref<StateContext>, scriptInterface: ref<StateGameScriptInterface>) -> Void {
   let weapon: ref<WeaponObject> = MeleeTransition.GetWeaponObject(scriptInterface);
   let system: ref<BluntLeapSystem>;
   if IsDefined(weapon) {
     system = BluntLeapSystem.Get(weapon.GetGame());
-    if IsDefined(system) {
-      system.PrepareCharge(weapon);
+    if IsDefined(system) && system.PrepareCharge(weapon) {
+      system.ClearCharge(weapon);
     };
   };
   wrappedMethod(stateContext, scriptInterface);
 }
 
+// The hold ends. The original keeps the charge only when the hold turns into
+// a strong attack (m_clearWeaponCharge false); otherwise ours is emptied.
+// A leap stores its charge before this and gives it back when it starts.
+@wrapMethod(MeleeChargedHoldEvents)
+public func OnExit(stateContext: ref<StateContext>, scriptInterface: ref<StateGameScriptInterface>) -> Void {
+  let weapon: ref<WeaponObject>;
+  let system: ref<BluntLeapSystem>;
+  wrappedMethod(stateContext, scriptInterface);
+  if !this.m_clearWeaponCharge {
+    return;
+  };
+  weapon = MeleeTransition.GetWeaponObject(scriptInterface);
+  if IsDefined(weapon) {
+    system = BluntLeapSystem.Get(weapon.GetGame());
+    if IsDefined(system) {
+      system.ClearCharge(weapon);
+    };
+  };
+}
+
+// The hold is cut short (a block, a hit, a dodge): always empty.
+@wrapMethod(MeleeChargedHoldEvents)
+public func OnForcedExit(stateContext: ref<StateContext>, scriptInterface: ref<StateGameScriptInterface>) -> Void {
+  let weapon: ref<WeaponObject>;
+  let system: ref<BluntLeapSystem>;
+  wrappedMethod(stateContext, scriptInterface);
+  weapon = MeleeTransition.GetWeaponObject(scriptInterface);
+  if IsDefined(weapon) {
+    system = BluntLeapSystem.Get(weapon.GetGame());
+    if IsDefined(system) {
+      system.ClearCharge(weapon);
+    };
+  };
+}
+
 // An attack's hit window is over. The game takes the attack's charge cost
-// here; blunt attacks have none, so our pool is emptied whole, once. A
-// stronger leap's extra effects end here too.
+// here (on the wrong object, and blunt attacks have none); ours is emptied.
+// A stronger leap's extra effects end here too.
 @wrapMethod(MeleeAttackGenericEvents)
 protected func ConsumeWeaponCharge(scriptInterface: ref<StateGameScriptInterface>, attackData: ref<MeleeAttackData>) -> Void {
   let weapon: ref<WeaponObject>;
@@ -108,12 +163,40 @@ protected func ConsumeWeaponCharge(scriptInterface: ref<StateGameScriptInterface
   if !IsDefined(system) {
     return;
   };
-  if system.OwnsChargeOf(weapon) {
-    this.ChangeStatPoolValue(scriptInterface, weapon.GetEntityID(), gamedataStatPoolType.WeaponCharge, -100.0, true);
-  };
+  system.ClearCharge(weapon);
   // Gorilla Arms call this on every frame of the swing, so they are left to
   // the timer instead.
   if NotEquals(WeaponObject.GetWeaponType(weapon.GetItemID()), gamedataItemType.Cyb_StrongArms) {
     system.DisarmStrongLeap();
+  };
+}
+
+// The attack ends, however it ends (the hit window may never be reached when
+// it is interrupted). The damage has already taken the charge it needed.
+@wrapMethod(MeleeAttackGenericEvents)
+public func OnExit(stateContext: ref<StateContext>, scriptInterface: ref<StateGameScriptInterface>) -> Void {
+  let weapon: ref<WeaponObject>;
+  let system: ref<BluntLeapSystem>;
+  wrappedMethod(stateContext, scriptInterface);
+  weapon = MeleeTransition.GetWeaponObject(scriptInterface);
+  if IsDefined(weapon) {
+    system = BluntLeapSystem.Get(weapon.GetGame());
+    if IsDefined(system) {
+      system.ClearCharge(weapon);
+    };
+  };
+}
+
+@wrapMethod(MeleeAttackGenericEvents)
+public func OnForcedExit(stateContext: ref<StateContext>, scriptInterface: ref<StateGameScriptInterface>) -> Void {
+  let weapon: ref<WeaponObject>;
+  let system: ref<BluntLeapSystem>;
+  wrappedMethod(stateContext, scriptInterface);
+  weapon = MeleeTransition.GetWeaponObject(scriptInterface);
+  if IsDefined(weapon) {
+    system = BluntLeapSystem.Get(weapon.GetGame());
+    if IsDefined(system) {
+      system.ClearCharge(weapon);
+    };
   };
 }
