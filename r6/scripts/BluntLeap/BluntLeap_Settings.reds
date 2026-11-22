@@ -12,7 +12,7 @@ enum BluntLeapUnlockRule {
 // How fast our charge fills while Sandevistan slows time.
 enum BluntLeapSandevistanCharge {
   Vanilla = 0,   // slows with time, like every melee charge in the game
-  Partial = 1,   // catches up part of the way, like the game's gun fire rate
+  Partial = 1,   // halfway between Vanilla and Full
   Full = 2       // the same real time as without Sandevistan
 }
 
@@ -279,7 +279,7 @@ public class BluntLeapSettings extends IScriptable {
   @runtimeProperty("ModSettings.category", "Charge")
   @runtimeProperty("ModSettings.category.order", "4")
   @runtimeProperty("ModSettings.displayName", "Charge speed under Sandevistan")
-  @runtimeProperty("ModSettings.description", "Vanilla: the charge slows with time, like every melee charge in the game. Partial: catches up part of the way, as the game does for gun fire rate. Full: same real-time charge as normal.")
+  @runtimeProperty("ModSettings.description", "Vanilla: the charge slows with time, like every melee charge in the game. Partial: halfway between Vanilla and Full. Full: same real-time charge as normal.")
   @runtimeProperty("ModSettings.displayValues.Vanilla", "Vanilla")
   @runtimeProperty("ModSettings.displayValues.Partial", "Partial")
   @runtimeProperty("ModSettings.displayValues.Full", "Full")

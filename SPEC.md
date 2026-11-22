@@ -264,7 +264,7 @@ Every wrapper calls the original first. Nothing is replaced. Finisher leaps and 
 - **The game's only catch-up** is for gun fire rate (`CalcCycleTimeDeltaFactor`): under Sandevistan, 1 / dilation times 0.5 to 0.9 (`ProportionalClampF(1.0, 2.0, cycleTime, 0.5, 0.9)`).
 - **Setting** (Charge group): "Charge speed under Sandevistan", default **Full** (Vanilla until 2026-11-22, D44).
   - Vanilla: unchanged.
-  - Partial: the game's gun catch-up, with the charge time as the cycle time. For our charge times (0.5 to 1.2 s) that is about half of the slow-down made up.
+  - Partial: halfway between Vanilla and Full (D52). With slow-down d, the charge fills at d of its normal real-time speed under Vanilla and 1 under Full; Partial gives (1 + d) / 2. It first used the game's gun catch-up (1 / d times 0.5 to 0.9); with milder Sandevistans that came out slower than Vanilla (with a 0.55 slow-down: 2.0 times the charge time against Vanilla's 1.8).
   - Full: 1 / dilation, the same real time as without Sandevistan.
 - **How (first build; its update wrapper turned out never to run and was removed, see the second test below):** the hold state has no update of its own and uses the empty `MeleeEventsTransition.OnUpdate`. A wrapper on it acts only for `MeleeChargedHoldEvents` and only for a weapon whose charge is ours. Each frame it works out the wanted fill rate. Only when that differs from the pool's current rate does it change the pool's Regeneration modifier (`GetModifier`, `valuePerSec`, `RequestSettingModifier`). The charge built up so far is kept, so Sandevistan starting or ending mid-charge only changes the speed.
 - Weapons with a charge of their own (stun batons, Gorilla Arms, blades) are not touched.
@@ -334,7 +334,7 @@ The swing start and the reach bonus are now two settings for each blunt weapon t
   - when it runs out: the full-charge sound and rumble, and the charge counts as full;
   - the leap decisions read the charge through `BluntLeapSystem.LeapCharge`: the timed charge (full or nothing) for Gorilla Arms, the pool for everything else. A full one gives Thunder Breaker, and "Always charged" waits for it;
   - it ends with the hold (`OnExit` / `OnForcedExit`, after the leap has read it), when a weapon is drawn, and on loading a save;
-  - under Sandevistan it follows "Charge speed under Sandevistan": Vanilla runs in world time, Full in real time, Partial in real time divided by the gun catch-up factor.
+  - under Sandevistan it follows "Charge speed under Sandevistan": Vanilla runs in world time, Full in real time, Partial in real time times 2 / (1 + d).
 - **No bar:** the game's bar shows a pool, and the timed charge is not one.
 - 40 settings.
 

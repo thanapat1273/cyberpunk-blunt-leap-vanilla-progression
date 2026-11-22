@@ -125,7 +125,7 @@ Setting: Mod Settings, Battering Ram, Charge, "Charge speed under Sandevistan" (
 | # | Do | Expect |
 |---|---|---|
 | 9.1 | Vanilla. Charge without, then with Sandevistan | With Sandevistan the bar fills much more slowly (as every melee charge in the game) |
-| 9.2 | Partial. Same | With Sandevistan it fills faster than Vanilla, but still slower than without Sandevistan |
+| 9.2 | Partial. Same | With Sandevistan it fills faster than Vanilla and slower than without Sandevistan: with a 0.55 slow-down, about 1.3 times the normal time (Vanilla 1.8) |
 | 9.3 | Full. Same | About 1 s either way |
 | 9.4 | Full. Start holding, then start Sandevistan halfway | The bar keeps what it had and goes on at the normal speed; the same when Sandevistan ends mid-charge |
 | 9.5 | Full, Sandevistan on. A stun baton, a katana | Their own charges are unchanged (they still slow down) |

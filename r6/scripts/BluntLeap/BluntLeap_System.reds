@@ -705,8 +705,12 @@ public class BluntLeapSystem extends ScriptableSystem {
   // While a charge fills (called each time the charge grows). The charge fills in world time, so Sandevistan slows it,
   // as it slows every melee charge in the game. The setting can make ours
   // catch up:
-  //   Partial: as the game does for gun fire rate (CalcCycleTimeDeltaFactor):
-  //            1 / slow-down, times 0.5 to 0.9 by the charge time;
+  //   Partial: halfway between Vanilla and Full. With slow-down d the charge
+  //            fills at d of its normal real-time speed under Vanilla and at
+  //            1 under Full; Partial gives (1 + d) / 2, that is a world-time
+  //            rate of (1 + d) / (2 d). (It used the game's gun catch-up,
+  //            1 / d times 0.5 to 0.9, until 2026-11-23: for milder
+  //            Sandevistans that came out slower than Vanilla.)
   //   Full:    1 / slow-down, the same real time as without Sandevistan.
   // The pool's fill rate is only changed when it should differ from what it
   // is, and the charge already built up is kept, so Sandevistan starting or
@@ -742,10 +746,12 @@ public class BluntLeapSystem extends ScriptableSystem {
     if Equals(mode, BluntLeapSandevistanCharge.Full) {
       modeName = "Full";
     };
-    if NotEquals(mode, BluntLeapSandevistanCharge.Vanilla) && dilation < 1.0 {
-      rate = base / dilation;
+    if dilation < 1.0 {
+      if Equals(mode, BluntLeapSandevistanCharge.Full) {
+        rate = base / dilation;
+      };
       if Equals(mode, BluntLeapSandevistanCharge.Partial) {
-        rate *= ProportionalClampF(1.0, 2.0, 100.0 / base, 0.5, 0.9);
+        rate = base * (1.0 + dilation) / (2.0 * dilation);
       };
     };
     pools = GameInstance.GetStatPoolsSystem(weapon.GetGame());
@@ -881,13 +887,13 @@ public class BluntLeapSystem extends ScriptableSystem {
     needed = MaxF(settings.chargeGorilla, 0.05);
     // Under Sandevistan, as the setting "Charge speed under Sandevistan" says:
     // Vanilla slows with world time; Full takes the same real time; Partial
-    // catches up as the game does for gun fire rate.
+    // is halfway between: real-time speed (1 + d) / 2 (see UpdateChargeRate).
     affected = Equals(settings.sandevistanCharge, BluntLeapSandevistanCharge.Vanilla);
     if Equals(settings.sandevistanCharge, BluntLeapSandevistanCharge.Partial) {
       time = GameInstance.GetTimeSystem(this.GetGameInstance());
       dilation = this.SandevistanDilation(time, report);
       if dilation < 1.0 {
-        needed = needed / ProportionalClampF(1.0, 2.0, needed, 0.5, 0.9);
+        needed = needed * 2.0 / (1.0 + dilation);
       };
     };
     this.m_gorillaId = weapon.GetEntityID();
