@@ -258,6 +258,16 @@ public class BluntLeapSettings extends IScriptable {
   @runtimeProperty("ModSettings.mod", "Battering Ram")
   @runtimeProperty("ModSettings.category", "Charge")
   @runtimeProperty("ModSettings.category.order", "4")
+  @runtimeProperty("ModSettings.displayName", "Charge time: Gorilla Arms (s)")
+  @runtimeProperty("ModSettings.description", "Time to a full charge for Gorilla Arms. Their charge is kept by this mod and is separate from the relic perk's charge, which it never touches. Gorilla Arms show no charge bar; the full charge is told by sound and rumble.")
+  @runtimeProperty("ModSettings.step", "0.05")
+  @runtimeProperty("ModSettings.min", "0.2")
+  @runtimeProperty("ModSettings.max", "3.0")
+  public let chargeGorilla: Float = 0.75;
+
+  @runtimeProperty("ModSettings.mod", "Battering Ram")
+  @runtimeProperty("ModSettings.category", "Charge")
+  @runtimeProperty("ModSettings.category.order", "4")
   @runtimeProperty("ModSettings.displayName", "Full-charge damage bonus (%)")
   @runtimeProperty("ModSettings.description", "Extra damage for a fully charged strong attack with a blunt weapon charged by this mod; a partial charge gives a share of it. 33 is what the game gives its own charged melee weapons. Applies the next time you draw the weapon.")
   @runtimeProperty("ModSettings.step", "1.0")

@@ -50,7 +50,7 @@ One setting: **"Always charged" mode**, **off by default**. Off: any heavy attac
 | Off | owned | leap | stronger leap | shown |
 
 - **The bar** is the game's own melee crosshair bar. Blunt weapons get their own charge pool; the chainsword's isn't touched.
-- **Stun batons and Gorilla Arms** already have a charge and keep it.
+- **Stun batons** already have a charge and keep it. **Gorilla Arms** do not charge by holding in the game; this mod gives them a timed charge of their own (D51, below).
 - **Full-charge damage bonus:** the game's own rule for charged melee weapons, +33% at full charge and proportionally less below. Kept.
 
 ## 5. Settings and defaults (all in Mod Settings)
@@ -324,6 +324,19 @@ The swing start and the reach bonus are now two settings for each blunt weapon t
 - Results with the defaults: fists and Gorilla Arms 1.5 + 1.0, one-handed and hammers 2.0 + 0.5, two-handed and stun batons unchanged. With "Write a log" on, each leap writes "Leap reach <own> + <bonus> = <total> m".
 - 39 settings.
 - **Raised to 3.0 m the same day (D49),** a katana's reach. With the defaults: fists and Gorilla Arms 1.5 + 1.5, one-handed and hammers 2.0 + 1.0, two-handed 2.5 + 0.5; stun batons (4.0 m) unchanged.
+
+### Gorilla Arms charge (2026-11-23, D51)
+
+- **Seen in game:** with Gorilla Arms no charge bar, no full-charge sound, and the log showed every leap as "no charge": Thunder Breaker never fired.
+- **Why:** the design assumed Gorilla Arms charge by holding, like stun batons. They do not. They have no `ChargeTime`, so `GetChargeValuePerSec` returns -1 and holding fills nothing. Their `WeaponCharge` pool (`StrongArmsCharge`) has no fill rate and belongs to the Phantom Liberty relic perk. At 100 the game plays the relic "charged" effect and sound and arms the relic punch (`WeaponObject.OnUpdateWeaponCharge`).
+- **Fix:** a timed charge kept by the mod, never touching that pool:
+  - a strong attack held with Gorilla Arms (they go through `MeleeChargedHoldEvents` like every weapon) starts a timer of "Charge time: Gorilla Arms" (default 0.75 s), only when a charge is wanted (Thunder Breaker owned, or "Always charged");
+  - when it runs out: the full-charge sound and rumble, and the charge counts as full;
+  - the leap decisions read the charge through `BluntLeapSystem.LeapCharge`: the timed charge (full or nothing) for Gorilla Arms, the pool for everything else. A full one gives Thunder Breaker, and "Always charged" waits for it;
+  - it ends with the hold (`OnExit` / `OnForcedExit`, after the leap has read it), when a weapon is drawn, and on loading a save;
+  - under Sandevistan it follows "Charge speed under Sandevistan": Vanilla runs in world time, Full in real time, Partial in real time divided by the gun catch-up factor.
+- **No bar:** the game's bar shows a pool, and the timed charge is not one.
+- 40 settings.
 
 ### Not built
 

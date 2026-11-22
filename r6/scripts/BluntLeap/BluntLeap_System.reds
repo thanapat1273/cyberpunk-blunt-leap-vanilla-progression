@@ -18,6 +18,19 @@ public class BluntLeapValidateCallback extends DelayCallback {
   }
 }
 
+// Gorilla Arms: tells the system their timed charge is full (if it is still
+// the same hold).
+public class BluntLeapGorillaChargeCallback extends DelayCallback {
+  public let system: wref<BluntLeapSystem>;
+  public let hold: Int32;
+
+  public func Call() -> Void {
+    if IsDefined(this.system) {
+      this.system.OnGorillaFull(this.hold);
+    };
+  }
+}
+
 // Watches a charge we added. Tells the system the moment it becomes full,
 // and, while it fills, lets the system match its speed to Sandevistan. (The
 // hold state has no update of its own, and the game does not call the empty
@@ -73,6 +86,14 @@ public class BluntLeapSystem extends ScriptableSystem {
   private let m_reachMod: ref<gameStatModifierData>;
   private let m_reachId: EntityID;
 
+  // Gorilla Arms' timed charge: the arms it is for, whether it is full, and
+  // a number for each hold, so a timer left over from an earlier hold is
+  // ignored.
+  private let m_gorillaId: EntityID;
+  private let m_gorillaActive: Bool;
+  private let m_gorillaFull: Bool;
+  private let m_gorillaHold: Int32;
+
   // A stronger leap is on its way: its hit gets the extra effects until this time.
   private let m_strongUntil: Float;
   private let m_empDone: Bool;
@@ -105,6 +126,7 @@ public class BluntLeapSystem extends ScriptableSystem {
     callback.system = this;
     this.ForgetCharges();
     this.m_reachMod = null;
+    this.StopGorillaCharge();
     this.Refresh();
     GameInstance.GetDelaySystem(this.GetGameInstance()).DelayCallback(callback, 1.5, false);
   }
@@ -830,6 +852,84 @@ public class BluntLeapSystem extends ScriptableSystem {
     };
     GameInstance.GetStatsSystem(this.GetGameInstance()).RemoveModifier(Cast<StatsObjectID>(this.m_reachId), this.m_reachMod);
     this.m_reachMod = null;
+  }
+
+  // ---------------------------------------------------- Gorilla Arms charge
+  //
+  // Gorilla Arms do not charge by holding: they have no ChargeTime, and their
+  // WeaponCharge pool (StrongArmsCharge) belongs to the Phantom Liberty relic
+  // perk, which fills it its own way and arms its relic punch when it is full.
+  // So their charge for this mod is a timer instead of a pool, and the relic
+  // perk's charge is never read or touched. A hold lasting the charge time
+  // makes it full: the full-charge sound and rumble play, and a leap released
+  // then counts as fully charged (Thunder Breaker). There is no bar: the
+  // game's bar shows a pool.
+
+  // A strong attack starts to be held.
+  public final func StartGorillaCharge(weapon: wref<WeaponObject>) -> Void {
+    let settings: ref<BluntLeapSettings> = this.Settings();
+    let callback: ref<BluntLeapGorillaChargeCallback>;
+    let time: ref<TimeSystem>;
+    let needed: Float;
+    let dilation: Float;
+    let report: String;
+    let affected: Bool;
+    this.StopGorillaCharge();
+    if !IsDefined(weapon) || NotEquals(WeaponObject.GetWeaponType(weapon.GetItemID()), gamedataItemType.Cyb_StrongArms) || !this.ChargeWanted() {
+      return;
+    };
+    needed = MaxF(settings.chargeGorilla, 0.05);
+    // Under Sandevistan, as the setting "Charge speed under Sandevistan" says:
+    // Vanilla slows with world time; Full takes the same real time; Partial
+    // catches up as the game does for gun fire rate.
+    affected = Equals(settings.sandevistanCharge, BluntLeapSandevistanCharge.Vanilla);
+    if Equals(settings.sandevistanCharge, BluntLeapSandevistanCharge.Partial) {
+      time = GameInstance.GetTimeSystem(this.GetGameInstance());
+      dilation = this.SandevistanDilation(time, report);
+      if dilation < 1.0 {
+        needed = needed / ProportionalClampF(1.0, 2.0, needed, 0.5, 0.9);
+      };
+    };
+    this.m_gorillaId = weapon.GetEntityID();
+    this.m_gorillaActive = true;
+    this.m_gorillaFull = false;
+    callback = new BluntLeapGorillaChargeCallback();
+    callback.system = this;
+    callback.hold = this.m_gorillaHold;
+    GameInstance.GetDelaySystem(this.GetGameInstance()).DelayCallback(callback, needed, affected);
+    this.Log("Gorilla Arms charge started, full in " + FloatToStringPrec(needed, 2) + " s");
+  }
+
+  public final func OnGorillaFull(hold: Int32) -> Void {
+    if !this.m_gorillaActive || hold != this.m_gorillaHold {
+      return;
+    };
+    this.m_gorillaFull = true;
+    this.Log("Gorilla Arms fully charged");
+    this.OnFullCharge();
+  }
+
+  // The hold ended (after the leap, if any, has read the charge), a weapon
+  // was drawn, or a save was loaded.
+  public final func StopGorillaCharge() -> Void {
+    this.m_gorillaHold += 1;
+    this.m_gorillaActive = false;
+    this.m_gorillaFull = false;
+  }
+
+  // The charge a leap starts with, 0.0 to 1.0: the timed charge for Gorilla
+  // Arms (full or nothing), the weapon's charge pool for everything else.
+  public final func LeapCharge(weapon: wref<WeaponObject>) -> Float {
+    if !IsDefined(weapon) {
+      return 0.0;
+    };
+    if Equals(WeaponObject.GetWeaponType(weapon.GetItemID()), gamedataItemType.Cyb_StrongArms) {
+      if this.m_gorillaActive && this.m_gorillaFull && this.m_gorillaId == weapon.GetEntityID() {
+        return 1.0;
+      };
+      return 0.0;
+    };
+    return BluntLeapSystem.ChargeOf(weapon);
   }
 
   // A charge we added has just become full: sound and rumble. The bar's

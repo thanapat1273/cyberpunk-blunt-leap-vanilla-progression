@@ -37,6 +37,7 @@ protected cb func OnPreIntro() -> Bool {
         system.ClearCharge(weapon);
       };
       system.RemoveLeapReach();
+      system.StopGorillaCharge();
     };
   };
 
@@ -113,6 +114,7 @@ public func OnEnter(stateContext: ref<StateContext>, scriptInterface: ref<StateG
   wrappedMethod(stateContext, scriptInterface);
   if IsDefined(system) {
     system.NoteChargeStarted(weapon);
+    system.StartGorillaCharge(weapon);
   };
 }
 
@@ -124,6 +126,11 @@ public func OnExit(stateContext: ref<StateContext>, scriptInterface: ref<StateGa
   let weapon: ref<WeaponObject>;
   let system: ref<BluntLeapSystem>;
   wrappedMethod(stateContext, scriptInterface);
+  // Gorilla Arms' timed charge ends with the hold (a leap has read it by now).
+  system = BluntLeapSystem.Get(scriptInterface.executionOwner.GetGame());
+  if IsDefined(system) {
+    system.StopGorillaCharge();
+  };
   if !this.m_clearWeaponCharge {
     return;
   };
@@ -147,6 +154,7 @@ public func OnForcedExit(stateContext: ref<StateContext>, scriptInterface: ref<S
     system = BluntLeapSystem.Get(weapon.GetGame());
     if IsDefined(system) {
       system.ClearCharge(weapon);
+      system.StopGorillaCharge();
     };
   };
 }

@@ -17,7 +17,7 @@ If the game stops at launch with a script error, send me `r6/logs/redscript_rCUR
 | # | Do | Expect |
 |---|---|---|
 | 1.1 | Start the game, load a save | No error pop-up |
-| 1.2 | Open Mod Settings | "Battering Ram" with five groups (General, Battering Ram (the leap), Leap swing and reach, Charge, Thunder Breaker (full charge)) and 39 settings |
+| 1.2 | Open Mod Settings | "Battering Ram" with five groups (General, Battering Ram (the leap), Leap swing and reach, Charge, Thunder Breaker (full charge)) and 40 settings |
 | 1.3 | Open the Body perk page | Two new nodes on the row of Breakthrough: one right beside it (Blunt Leap), one further left (Stronger Leap). Two short lines join the three. A small Dash marker sits above Blunt Leap |
 | 1.4 | Hover both nodes | Name, description with numbers, no missing-text keys |
 | 1.5 | Look at both new nodes | Blunt Leap shows the bat icon, Stronger Leap the charged fist; both sharp and the same size as their neighbours |
@@ -130,6 +130,17 @@ Setting: Mod Settings, Battering Ram, Charge, "Charge speed under Sandevistan" (
 | 9.4 | Full. Start holding, then start Sandevistan halfway | The bar keeps what it had and goes on at the normal speed; the same when Sandevistan ends mid-charge |
 | 9.5 | Full, Sandevistan on. A stun baton, a katana | Their own charges are unchanged (they still slow down) |
 | 9.6 | Full, Sandevistan on. Charge to full and leap | Sound, flash and Thunder Breaker work as without Sandevistan |
+
+## 10. Gorilla Arms charge (2026-11-23)
+
+Thunder Breaker owned. With "Write a log" on, the log shows "Gorilla Arms charge started, full in ... s" and "Gorilla Arms fully charged".
+
+| # | Do | Expect |
+|---|---|---|
+| 10.1 | Hold a strong attack with Gorilla Arms for about 1 s | Full-charge sound and rumble after 0.75 s (setting: Charge time: Gorilla Arms). No bar |
+| 10.2 | Release at an enemy after the sound | A Thunder Breaker leap (log: "Stronger leap started"): longer reach, throw or stagger, EMP on a crit |
+| 10.3 | Release before the sound | A normal leap ("no charge") |
+| 10.4 | With the relic perk for Gorilla Arms | Its own charge and charged punch work as before, untouched by the hold |
 
 ## Things to tell me
 

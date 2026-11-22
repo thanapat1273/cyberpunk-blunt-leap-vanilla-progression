@@ -32,7 +32,7 @@ private final const func BluntLeap_Allow(stateContext: ref<StateContext>, const 
     return true;
   };
   settings = system.Settings();
-  charge = BluntLeapSystem.ChargeOf(weapon);
+  charge = system.LeapCharge(weapon);
 
   // "Always charged": only a full charge leaps. A weapon without any charge
   // pool is let through, so a missing pool can never switch the leap off.
@@ -88,7 +88,7 @@ private final const func BluntLeap_AllowLong(stateContext: ref<StateContext>, co
   if !scriptInterface.IsOnGround() && !scriptInterface.HasStatFlag(gamedataStatType.CanMeleeLeapInAir) {
     return false;
   };
-  if BluntLeapSystem.ChargeOf(weapon) < 1.0 {
+  if system.LeapCharge(weapon) < 1.0 {
     return false;
   };
   gameRange = this.GetStaticFloatParameterDefault("maxDistToTarget", 15.0);

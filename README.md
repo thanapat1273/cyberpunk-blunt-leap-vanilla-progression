@@ -22,6 +22,9 @@ The full design is in [SPEC.md](SPEC.md). The game facts behind it are in [RESEA
 
 ## Changes
 
+**Next** (not released yet)
+- Gorilla Arms now charge by holding a strong attack (setting "Charge time: Gorilla Arms", 0.75 s), with the full-charge sound and rumble, so their leaps can be Thunder Breaker leaps. Before, they never charged: their own charge belongs to the relic perk, which this mod does not touch. No charge bar for Gorilla Arms.
+
 **1.1.0** (2026-11-23)
 - Fixed: fist and Gorilla Arms leap attacks landed their punch before reaching the enemy. Their swing now starts 0.21 s before landing (the game's 0.3 s suits blades).
 - Leap attacks now reach at least 3 m with every blunt weapon (fists and Gorilla Arms reach 1.5 m in the game, one-handed weapons and hammers 2 m, two-handed 2.5 m). Only the attack that ends a leap; normal attacks are unchanged.
