@@ -250,8 +250,9 @@ public func OnEnter(stateContext: ref<StateContext>, scriptInterface: ref<StateG
     stateContext.SetConditionFloatParameter(n"LeapExitTime", MaxF(exitTime.value - (lead - this.GetStaticFloatParameterDefault("attackStartupDuration", 0.3)), 0.0), true);
   };
   //    And the attack that ends the leap reaches at least the minimum leap
-  //    reach (2.5 m: fists and Gorilla Arms reach 1.5 m, one-handed and
-  //    hammers 2.0 m), plus any per-type reach bonus.
+  //    reach (3.0 m, a katana's: fists and Gorilla Arms reach 1.5 m,
+  //    one-handed and hammers 2.0 m, two-handed 2.5 m), plus any per-type
+  //    reach bonus.
   system.AddLeapReach(weapon);
 
   if !stored.valid || stored.value <= 0.0 {

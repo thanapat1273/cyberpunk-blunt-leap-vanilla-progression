@@ -63,7 +63,7 @@ One setting: **"Always charged" mode**, **off by default**. Off: any heavy attac
 | Mid-air leap | On |
 | Distance damage bonus | up to +50% at 20 m |
 | Swing start before arrival, per type (D45, D47) | fists 0.21 s, Gorilla Arms 0.21 s, one-handed 0.3 s, two-handed 0.3 s, hammer 0.5 s |
-| Reach of the leap's attack (D46 to D48) | at least 2.5 m (minimum leap reach), plus a per-type bonus (0 by default) |
+| Reach of the leap's attack (D46 to D49) | at least 3.0 m (minimum leap reach; 2.5 m in D48), plus a per-type bonus (0 by default) |
 
 **Charge**
 
@@ -323,6 +323,7 @@ The swing start and the reach bonus are now two settings for each blunt weapon t
 - **How:** a setting "Minimum leap reach" (2.5 m). At the start of a leap the weapon's current `Range` is read, and the bonus is the larger of the type's own "Reach bonus" and what is missing to the minimum. So a weapon whose own Range differs from its type's is covered too. The per-type bonuses now default to 0. The fist +1.0 m of D46 now comes from the minimum.
 - Results with the defaults: fists and Gorilla Arms 1.5 + 1.0, one-handed and hammers 2.0 + 0.5, two-handed and stun batons unchanged. With "Write a log" on, each leap writes "Leap reach <own> + <bonus> = <total> m".
 - 39 settings.
+- **Raised to 3.0 m the same day (D49),** a katana's reach. With the defaults: fists and Gorilla Arms 1.5 + 1.5, one-handed and hammers 2.0 + 1.0, two-handed 2.5 + 0.5; stun batons (4.0 m) unchanged.
 
 ### Not built
 

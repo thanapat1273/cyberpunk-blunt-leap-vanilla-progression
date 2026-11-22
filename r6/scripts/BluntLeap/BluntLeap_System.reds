@@ -756,7 +756,7 @@ public class BluntLeapSystem extends ScriptableSystem {
   }
 
   // A leap has started: the attack at its end reaches at least the minimum
-  // leap reach (setting, 2.5 m), and at least the weapon type's reach bonus
+  // leap reach (setting, 3.0 m), and at least the weapon type's reach bonus
   // farther than the weapon's own reach (settings "Reach bonus", 0 by
   // default). A melee hit's box is as long as the weapon's Range stat
   // (MeleeAttackGenericEvents.CreateMeleeAttack). After a leap the game does

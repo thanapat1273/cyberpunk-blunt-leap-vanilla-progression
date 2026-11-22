@@ -143,11 +143,11 @@ public class BluntLeapSettings extends IScriptable {
   @runtimeProperty("ModSettings.category", "Leap swing and reach")
   @runtimeProperty("ModSettings.category.order", "3")
   @runtimeProperty("ModSettings.displayName", "Minimum leap reach (m)")
-  @runtimeProperty("ModSettings.description", "The attack that ends a leap reaches at least this far, whatever the weapon. In the game fists and Gorilla Arms reach 1.5 m, one-handed blunt weapons and hammers 2.0 m, two-handed 2.5 m, stun batons 4.0 m (a katana 3 m). Only that one attack; normal attacks are unchanged. 0 turns it off; the reach bonuses below still add on top.")
+  @runtimeProperty("ModSettings.description", "The attack that ends a leap reaches at least this far, whatever the weapon. In the game fists and Gorilla Arms reach 1.5 m, one-handed blunt weapons and hammers 2.0 m, two-handed 2.5 m, stun batons 4.0 m, a katana 3.0 m (the default here). Only that one attack; normal attacks are unchanged. 0 turns it off; the reach bonuses below still add on top.")
   @runtimeProperty("ModSettings.step", "0.1")
   @runtimeProperty("ModSettings.min", "0.0")
   @runtimeProperty("ModSettings.max", "4.0")
-  public let leapMinReach: Float = 2.5;
+  public let leapMinReach: Float = 3.0;
 
   @runtimeProperty("ModSettings.mod", "Battering Ram")
   @runtimeProperty("ModSettings.category", "Leap swing and reach")

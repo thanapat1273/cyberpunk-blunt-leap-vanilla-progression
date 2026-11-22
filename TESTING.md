@@ -44,14 +44,14 @@ Hold the strong attack at an enemy 3 to 15 m away and release.
 | 3.1 | One-handed blunt | V leaps and the hit lands on arrival |
 | 3.2 | Bat | Same |
 | 3.3 | Hammer | Same; the hit should land on arrival, not after it. If it lands late or early, note it (setting: Swing start: hammer) |
-| 3.4 | Fists | Same; the punch lands as V arrives, not before (setting: Swing start: fists, 0.21 s), and reaches the enemy (setting: Minimum leap reach, 2.5 m, for the leap's punch only). **2026-11-23: timing fixed, but misses were still frequent (reach too short); reach bonus added, check again** |
+| 3.4 | Fists | Same; the punch lands as V arrives, not before (setting: Swing start: fists, 0.21 s), and reaches the enemy (setting: Minimum leap reach, 3.0 m, for the leap's punch only). **2026-11-23: timing fixed, but misses were still frequent (reach too short); reach bonus added, check again** |
 | 3.4b | Fists, normal punches after the leap | The reach bonus is gone: normal punches have their usual reach |
 | 3.5 | Any, while in the air | Leap works (setting: Leap in mid-air) |
 | 3.6 | A blade without the blade perk | No leap: blades are unchanged |
 | 3.7 | Gorilla Arms | Leap works, the punch lands on arrival and reaches (Swing start: Gorilla Arms; Minimum leap reach); quick finishers still work; no crash on landing |
 | 3.8 | Enemy closer than 2 m, or further than 15 m | Normal strong attack |
 | 3.9 | Leap swing and reach group: give one type a bigger reach bonus or a different swing start, leap with that type and with another | Only that type changes |
-| 3.10 | Write a log on. Leap with fists, a one-handed weapon, a hammer, a two-handed weapon, a stun baton | "Leap reach" lines: fists 1.5 + 1.0 = 2.5 m, one-handed and hammer 2.0 + 0.5 = 2.5 m; no line for two-handed (2.5 m) or the stun baton (4.0 m) |
+| 3.10 | Write a log on. Leap with fists, a one-handed weapon, a hammer, a two-handed weapon, a stun baton | "Leap reach" lines: fists 1.5 + 1.5 = 3 m, one-handed and hammer 2.0 + 1.0 = 3 m, two-handed 2.5 + 0.5 = 3 m; no line for the stun baton (4.0 m) |
 
 ## 4. Charge
 
