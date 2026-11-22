@@ -63,7 +63,7 @@ One setting: **"Always charged" mode**, **off by default**. Off: any heavy attac
 | Mid-air leap | On |
 | Distance damage bonus | up to +50% at 20 m |
 | Swing start before arrival, per type (D45, D47) | fists 0.21 s, Gorilla Arms 0.21 s, one-handed 0.3 s, two-handed 0.3 s, hammer 0.5 s |
-| Reach of the leap's attack (D46 to D49) | at least 3.0 m (minimum leap reach; 2.5 m in D48), plus a per-type bonus (0 by default) |
+| Reach of the leap's attack (D46 to D50) | the larger of: 3.0 m (minimum leap reach; 2.5 m in D48), or the weapon's own reach plus its type's reach bonus (0 by default) |
 
 **Charge**
 
