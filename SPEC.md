@@ -62,9 +62,8 @@ One setting: **"Always charged" mode**, **off by default**. Off: any heavy attac
 | Leap range | 15 m |
 | Mid-air leap | On |
 | Distance damage bonus | up to +50% at 20 m |
-| Hammer swing start | 0.5 s before arrival (others 0.3 s) |
-| Fists swing start (fists, Gorilla Arms) | 0.21 s before arrival (added 2026-11-22, D45) |
-| Fists leap reach bonus (fists, Gorilla Arms) | +1.0 m on the leap's punch only (added 2026-11-23, D46) |
+| Swing start before arrival, per type (D45, D47) | fists 0.21 s, Gorilla Arms 0.21 s, one-handed 0.3 s, two-handed 0.3 s, hammer 0.5 s |
+| Reach bonus on the leap's attack, per type (D46, D47) | fists +1.0 m, Gorilla Arms +1.0 m, one-handed 0, two-handed 0, hammer 0 |
 
 **Charge**
 
@@ -300,6 +299,22 @@ Every wrapper calls the original first. Nothing is replaced. Finisher leaps and 
 - **Fix:** while a fist or Gorilla Arms leap runs and until its punch ends, the weapon gets +`fistLeapReach` m of `Range` (setting "Fists leap reach bonus", default 1.0 m: fists reach like a two-handed bat).
   - `Range` is also used by an attack's move-to-target, which could put V farther away; the game skips that move when the attack follows a leap, so the bonus only lengthens the punch.
   - Taken off when the attack ends (`MeleeAttackGenericEvents.OnExit` / `OnForcedExit`), when the leap ends without its attack (`MeleeLeapEvents.OnExit` not going on to the strong attack, `OnForcedExit`), when a weapon is drawn, and on loading a save.
+
+### Leap swing and reach for every blunt type (2026-11-23, D47)
+
+The swing start and the reach bonus are now two settings for each blunt weapon type, in their own Mod Settings group, "Leap swing and reach":
+
+| Type (game item type) | Strong attack hits after | Range in the game | Swing start default | Reach bonus default |
+|---|---|---|---|---|
+| Fists (`Wea_Fists`) | 0.19 s | 1.5 m | 0.21 s | +1.0 m |
+| Gorilla Arms (`Cyb_StrongArms`) | 0.19 s | 1.5 m | 0.21 s | +1.0 m |
+| One-handed (`Wea_OneHandedClub`; stun batons are this type) | 0.29 s (stun baton 0.31 s) | 2.0 m (stun baton 4.0 m) | 0.3 s (the game's) | 0 |
+| Two-handed (`Wea_TwoHandedClub`) | 0.29 s | 2.5 m | 0.3 s (the game's) | 0 |
+| Hammer (`Wea_Hammer`) | 0.5 s | 2.0 m | 0.5 s | 0 |
+
+- The variable names `hammerLead`, `fistLead` and `fistLeapReach` are kept, so saved values carry over. Gorilla Arms used the fist values before; they now have their own (same defaults).
+- `BluntLeapSystem.SwingStartFor` and `LeapReachFor` pick the value by item type; the leap applies both for every type (a swing start of 0.3 s and a bonus of 0 change nothing).
+- 38 settings in all, in five groups.
 
 ### Not built
 

@@ -84,55 +84,130 @@ public class BluntLeapSettings extends IScriptable {
   @runtimeProperty("ModSettings.max", "100.0")
   public let distanceBonus: Float = 50.0;
 
+  // ---------------------------------------------------- leap swing and reach
+  // Per weapon type: when the leap's strong attack starts, and how much
+  // farther that one attack reaches. The game starts every leap's attack
+  // 0.3 s before arrival (tuned for blades) and gives no extra reach.
+
   @runtimeProperty("ModSettings.mod", "Battering Ram")
-  @runtimeProperty("ModSettings.category", "Battering Ram (the leap)")
-  @runtimeProperty("ModSettings.category.order", "2")
-  @runtimeProperty("ModSettings.displayName", "Hammer swing start (s)")
-  @runtimeProperty("ModSettings.description", "How long before landing a hammer starts its swing. Hammers swing slower than other weapons, so they start earlier to hit on arrival. Fists and Gorilla Arms have their own setting; other weapons use the game's 0.3.")
-  @runtimeProperty("ModSettings.step", "0.05")
-  @runtimeProperty("ModSettings.min", "0.3")
+  @runtimeProperty("ModSettings.category", "Leap swing and reach")
+  @runtimeProperty("ModSettings.category.order", "3")
+  @runtimeProperty("ModSettings.displayName", "Swing start: fists (s)")
+  @runtimeProperty("ModSettings.description", "How long before landing the leap's strong attack starts. Fists hit 0.19 s after the attack starts, so a swing start a little above that lands the hit as V arrives. The game uses 0.3 for every weapon. Lower it if the hit lands short; raise it if it lands late.")
+  @runtimeProperty("ModSettings.step", "0.01")
+  @runtimeProperty("ModSettings.min", "0.1")
+  @runtimeProperty("ModSettings.max", "0.7")
+  public let fistLead: Float = 0.21;
+
+  @runtimeProperty("ModSettings.mod", "Battering Ram")
+  @runtimeProperty("ModSettings.category", "Leap swing and reach")
+  @runtimeProperty("ModSettings.category.order", "3")
+  @runtimeProperty("ModSettings.displayName", "Swing start: Gorilla Arms (s)")
+  @runtimeProperty("ModSettings.description", "How long before landing the leap's strong attack starts. Gorilla Arms hit 0.19 s after the attack starts, so a swing start a little above that lands the hit as V arrives. The game uses 0.3 for every weapon. Lower it if the hit lands short; raise it if it lands late.")
+  @runtimeProperty("ModSettings.step", "0.01")
+  @runtimeProperty("ModSettings.min", "0.1")
+  @runtimeProperty("ModSettings.max", "0.7")
+  public let gorillaLead: Float = 0.21;
+
+  @runtimeProperty("ModSettings.mod", "Battering Ram")
+  @runtimeProperty("ModSettings.category", "Leap swing and reach")
+  @runtimeProperty("ModSettings.category.order", "3")
+  @runtimeProperty("ModSettings.displayName", "Swing start: one-handed (s)")
+  @runtimeProperty("ModSettings.description", "How long before landing the leap's strong attack starts. One-handed blunt weapons (stun batons included) hit 0.29 s (stun batons 0.31 s) after the attack starts, so a swing start a little above that lands the hit as V arrives. The game uses 0.3 for every weapon. Lower it if the hit lands short; raise it if it lands late.")
+  @runtimeProperty("ModSettings.step", "0.01")
+  @runtimeProperty("ModSettings.min", "0.1")
+  @runtimeProperty("ModSettings.max", "0.7")
+  public let oneHandedLead: Float = 0.3;
+
+  @runtimeProperty("ModSettings.mod", "Battering Ram")
+  @runtimeProperty("ModSettings.category", "Leap swing and reach")
+  @runtimeProperty("ModSettings.category.order", "3")
+  @runtimeProperty("ModSettings.displayName", "Swing start: two-handed (s)")
+  @runtimeProperty("ModSettings.description", "How long before landing the leap's strong attack starts. Two-handed blunt weapons hit 0.29 s after the attack starts, so a swing start a little above that lands the hit as V arrives. The game uses 0.3 for every weapon. Lower it if the hit lands short; raise it if it lands late.")
+  @runtimeProperty("ModSettings.step", "0.01")
+  @runtimeProperty("ModSettings.min", "0.1")
+  @runtimeProperty("ModSettings.max", "0.7")
+  public let twoHandedLead: Float = 0.3;
+
+  @runtimeProperty("ModSettings.mod", "Battering Ram")
+  @runtimeProperty("ModSettings.category", "Leap swing and reach")
+  @runtimeProperty("ModSettings.category.order", "3")
+  @runtimeProperty("ModSettings.displayName", "Swing start: hammer (s)")
+  @runtimeProperty("ModSettings.description", "How long before landing the leap's strong attack starts. Hammers hit 0.5 s after the attack starts, so a swing start a little above that lands the hit as V arrives. The game uses 0.3 for every weapon. Lower it if the hit lands short; raise it if it lands late.")
+  @runtimeProperty("ModSettings.step", "0.01")
+  @runtimeProperty("ModSettings.min", "0.1")
   @runtimeProperty("ModSettings.max", "0.7")
   public let hammerLead: Float = 0.5;
 
   @runtimeProperty("ModSettings.mod", "Battering Ram")
-  @runtimeProperty("ModSettings.category", "Battering Ram (the leap)")
-  @runtimeProperty("ModSettings.category.order", "2")
-  @runtimeProperty("ModSettings.displayName", "Fists swing start (s)")
-  @runtimeProperty("ModSettings.description", "How long before landing a punch starts, for fists and Gorilla Arms. A punch hits sooner after it starts than a blade, so it starts later to land on arrival. Lower it if punches still land short; raise it if they land late.")
-  @runtimeProperty("ModSettings.step", "0.01")
-  @runtimeProperty("ModSettings.min", "0.1")
-  @runtimeProperty("ModSettings.max", "0.4")
-  public let fistLead: Float = 0.21;
-
-  @runtimeProperty("ModSettings.mod", "Battering Ram")
-  @runtimeProperty("ModSettings.category", "Battering Ram (the leap)")
-  @runtimeProperty("ModSettings.category.order", "2")
-  @runtimeProperty("ModSettings.displayName", "Fists leap reach bonus (m)")
-  @runtimeProperty("ModSettings.description", "Extra reach for the punch that ends a leap, for fists and Gorilla Arms. The game gives them 1.5 m (a two-handed bat has 2.5 m, a katana 3 m). Normal punches are unchanged. 0 turns it off.")
+  @runtimeProperty("ModSettings.category", "Leap swing and reach")
+  @runtimeProperty("ModSettings.category.order", "3")
+  @runtimeProperty("ModSettings.displayName", "Reach bonus: fists (m)")
+  @runtimeProperty("ModSettings.description", "Extra reach for the attack that ends a leap. Fists reach 1.5 m in the game (a katana 3 m). Only that one attack; normal attacks are unchanged. 0 turns it off.")
   @runtimeProperty("ModSettings.step", "0.1")
   @runtimeProperty("ModSettings.min", "0.0")
   @runtimeProperty("ModSettings.max", "2.0")
   public let fistLeapReach: Float = 1.0;
 
+  @runtimeProperty("ModSettings.mod", "Battering Ram")
+  @runtimeProperty("ModSettings.category", "Leap swing and reach")
+  @runtimeProperty("ModSettings.category.order", "3")
+  @runtimeProperty("ModSettings.displayName", "Reach bonus: Gorilla Arms (m)")
+  @runtimeProperty("ModSettings.description", "Extra reach for the attack that ends a leap. Gorilla Arms reach 1.5 m in the game (a katana 3 m). Only that one attack; normal attacks are unchanged. 0 turns it off.")
+  @runtimeProperty("ModSettings.step", "0.1")
+  @runtimeProperty("ModSettings.min", "0.0")
+  @runtimeProperty("ModSettings.max", "2.0")
+  public let gorillaLeapReach: Float = 1.0;
+
+  @runtimeProperty("ModSettings.mod", "Battering Ram")
+  @runtimeProperty("ModSettings.category", "Leap swing and reach")
+  @runtimeProperty("ModSettings.category.order", "3")
+  @runtimeProperty("ModSettings.displayName", "Reach bonus: one-handed (m)")
+  @runtimeProperty("ModSettings.description", "Extra reach for the attack that ends a leap. One-handed blunt weapons (stun batons included) reach 2.0 m (stun batons 4.0 m) in the game (a katana 3 m). Only that one attack; normal attacks are unchanged. 0 turns it off.")
+  @runtimeProperty("ModSettings.step", "0.1")
+  @runtimeProperty("ModSettings.min", "0.0")
+  @runtimeProperty("ModSettings.max", "2.0")
+  public let oneHandedLeapReach: Float = 0.0;
+
+  @runtimeProperty("ModSettings.mod", "Battering Ram")
+  @runtimeProperty("ModSettings.category", "Leap swing and reach")
+  @runtimeProperty("ModSettings.category.order", "3")
+  @runtimeProperty("ModSettings.displayName", "Reach bonus: two-handed (m)")
+  @runtimeProperty("ModSettings.description", "Extra reach for the attack that ends a leap. Two-handed blunt weapons reach 2.5 m in the game (a katana 3 m). Only that one attack; normal attacks are unchanged. 0 turns it off.")
+  @runtimeProperty("ModSettings.step", "0.1")
+  @runtimeProperty("ModSettings.min", "0.0")
+  @runtimeProperty("ModSettings.max", "2.0")
+  public let twoHandedLeapReach: Float = 0.0;
+
+  @runtimeProperty("ModSettings.mod", "Battering Ram")
+  @runtimeProperty("ModSettings.category", "Leap swing and reach")
+  @runtimeProperty("ModSettings.category.order", "3")
+  @runtimeProperty("ModSettings.displayName", "Reach bonus: hammer (m)")
+  @runtimeProperty("ModSettings.description", "Extra reach for the attack that ends a leap. Hammers reach 2.0 m in the game (a katana 3 m). Only that one attack; normal attacks are unchanged. 0 turns it off.")
+  @runtimeProperty("ModSettings.step", "0.1")
+  @runtimeProperty("ModSettings.min", "0.0")
+  @runtimeProperty("ModSettings.max", "2.0")
+  public let hammerLeapReach: Float = 0.0;
+
   // -------------------------------------------------------------- charge
 
   @runtimeProperty("ModSettings.mod", "Battering Ram")
   @runtimeProperty("ModSettings.category", "Charge")
-  @runtimeProperty("ModSettings.category.order", "3")
+  @runtimeProperty("ModSettings.category.order", "4")
   @runtimeProperty("ModSettings.displayName", "Always charged")
   @runtimeProperty("ModSettings.description", "Off: any held strong attack leaps, as with blades. On: only a fully charged one leaps; a partly charged one is a normal strong attack. Applies the next time you draw the weapon.")
   public let alwaysCharged: Bool = false;
 
   @runtimeProperty("ModSettings.mod", "Battering Ram")
   @runtimeProperty("ModSettings.category", "Charge")
-  @runtimeProperty("ModSettings.category.order", "3")
+  @runtimeProperty("ModSettings.category.order", "4")
   @runtimeProperty("ModSettings.displayName", "Charge bar")
   @runtimeProperty("ModSettings.description", "Show the game's melee charge bar at the crosshair while a blunt weapon charges. Applies the next time you draw the weapon.")
   public let chargeBar: Bool = true;
 
   @runtimeProperty("ModSettings.mod", "Battering Ram")
   @runtimeProperty("ModSettings.category", "Charge")
-  @runtimeProperty("ModSettings.category.order", "3")
+  @runtimeProperty("ModSettings.category.order", "4")
   @runtimeProperty("ModSettings.displayName", "Charge time: fists (s)")
   @runtimeProperty("ModSettings.description", "Time to a full charge. Stun batons and Gorilla Arms keep their own charge.")
   @runtimeProperty("ModSettings.step", "0.05")
@@ -142,7 +217,7 @@ public class BluntLeapSettings extends IScriptable {
 
   @runtimeProperty("ModSettings.mod", "Battering Ram")
   @runtimeProperty("ModSettings.category", "Charge")
-  @runtimeProperty("ModSettings.category.order", "3")
+  @runtimeProperty("ModSettings.category.order", "4")
   @runtimeProperty("ModSettings.displayName", "Charge time: one-handed (s)")
   @runtimeProperty("ModSettings.description", "Time to a full charge for one-handed blunt weapons.")
   @runtimeProperty("ModSettings.step", "0.05")
@@ -152,7 +227,7 @@ public class BluntLeapSettings extends IScriptable {
 
   @runtimeProperty("ModSettings.mod", "Battering Ram")
   @runtimeProperty("ModSettings.category", "Charge")
-  @runtimeProperty("ModSettings.category.order", "3")
+  @runtimeProperty("ModSettings.category.order", "4")
   @runtimeProperty("ModSettings.displayName", "Charge time: two-handed (s)")
   @runtimeProperty("ModSettings.description", "Time to a full charge for two-handed blunt weapons such as bats.")
   @runtimeProperty("ModSettings.step", "0.05")
@@ -162,7 +237,7 @@ public class BluntLeapSettings extends IScriptable {
 
   @runtimeProperty("ModSettings.mod", "Battering Ram")
   @runtimeProperty("ModSettings.category", "Charge")
-  @runtimeProperty("ModSettings.category.order", "3")
+  @runtimeProperty("ModSettings.category.order", "4")
   @runtimeProperty("ModSettings.displayName", "Charge time: hammer (s)")
   @runtimeProperty("ModSettings.description", "Time to a full charge for hammers.")
   @runtimeProperty("ModSettings.step", "0.05")
@@ -172,7 +247,7 @@ public class BluntLeapSettings extends IScriptable {
 
   @runtimeProperty("ModSettings.mod", "Battering Ram")
   @runtimeProperty("ModSettings.category", "Charge")
-  @runtimeProperty("ModSettings.category.order", "3")
+  @runtimeProperty("ModSettings.category.order", "4")
   @runtimeProperty("ModSettings.displayName", "Full-charge damage bonus (%)")
   @runtimeProperty("ModSettings.description", "Extra damage for a fully charged strong attack with a blunt weapon charged by this mod; a partial charge gives a share of it. 33 is what the game gives its own charged melee weapons. Applies the next time you draw the weapon.")
   @runtimeProperty("ModSettings.step", "1.0")
@@ -182,7 +257,7 @@ public class BluntLeapSettings extends IScriptable {
 
   @runtimeProperty("ModSettings.mod", "Battering Ram")
   @runtimeProperty("ModSettings.category", "Charge")
-  @runtimeProperty("ModSettings.category.order", "3")
+  @runtimeProperty("ModSettings.category.order", "4")
   @runtimeProperty("ModSettings.displayName", "Charge speed under Sandevistan")
   @runtimeProperty("ModSettings.description", "Vanilla: the charge slows with time, like every melee charge in the game. Partial: catches up part of the way, as the game does for gun fire rate. Full: same real-time charge as normal.")
   @runtimeProperty("ModSettings.displayValues.Vanilla", "Vanilla")
@@ -192,21 +267,21 @@ public class BluntLeapSettings extends IScriptable {
 
   @runtimeProperty("ModSettings.mod", "Battering Ram")
   @runtimeProperty("ModSettings.category", "Charge")
-  @runtimeProperty("ModSettings.category.order", "3")
+  @runtimeProperty("ModSettings.category.order", "4")
   @runtimeProperty("ModSettings.displayName", "Sound at full charge")
   @runtimeProperty("ModSettings.description", "Play a short sound when the charge is full.")
   public let fullSound: Bool = true;
 
   @runtimeProperty("ModSettings.mod", "Battering Ram")
   @runtimeProperty("ModSettings.category", "Charge")
-  @runtimeProperty("ModSettings.category.order", "3")
+  @runtimeProperty("ModSettings.category.order", "4")
   @runtimeProperty("ModSettings.displayName", "Bar flash at full charge")
   @runtimeProperty("ModSettings.description", "The charge bar pulses once when the charge is full.")
   public let fullFlash: Bool = true;
 
   @runtimeProperty("ModSettings.mod", "Battering Ram")
   @runtimeProperty("ModSettings.category", "Charge")
-  @runtimeProperty("ModSettings.category.order", "3")
+  @runtimeProperty("ModSettings.category.order", "4")
   @runtimeProperty("ModSettings.displayName", "Rumble at full charge")
   @runtimeProperty("ModSettings.description", "One controller rumble pulse when the charge is full.")
   public let fullRumble: Bool = true;
@@ -215,7 +290,7 @@ public class BluntLeapSettings extends IScriptable {
 
   @runtimeProperty("ModSettings.mod", "Battering Ram")
   @runtimeProperty("ModSettings.category", "Thunder Breaker (full charge)")
-  @runtimeProperty("ModSettings.category.order", "4")
+  @runtimeProperty("ModSettings.category.order", "5")
   @runtimeProperty("ModSettings.displayName", "Extra range (%)")
   @runtimeProperty("ModSettings.description", "With Thunder Breaker, a fully charged leap reaches this much further than the leap range. The travel time keeps its cap, so longer leaps are faster.")
   @runtimeProperty("ModSettings.step", "5.0")
@@ -225,14 +300,14 @@ public class BluntLeapSettings extends IScriptable {
 
   @runtimeProperty("ModSettings.mod", "Battering Ram")
   @runtimeProperty("ModSettings.category", "Thunder Breaker (full charge)")
-  @runtimeProperty("ModSettings.category.order", "4")
+  @runtimeProperty("ModSettings.category.order", "5")
   @runtimeProperty("ModSettings.displayName", "EMP on a crit")
   @runtimeProperty("ModSettings.description", "A fully charged leap that crits sets off an EMP burst at the enemy. It never hurts you.")
   public let emp: Bool = true;
 
   @runtimeProperty("ModSettings.mod", "Battering Ram")
   @runtimeProperty("ModSettings.category", "Thunder Breaker (full charge)")
-  @runtimeProperty("ModSettings.category.order", "4")
+  @runtimeProperty("ModSettings.category.order", "5")
   @runtimeProperty("ModSettings.displayName", "EMP radius (m)")
   @runtimeProperty("ModSettings.description", "How far the EMP burst reaches.")
   @runtimeProperty("ModSettings.step", "0.5")
@@ -242,7 +317,7 @@ public class BluntLeapSettings extends IScriptable {
 
   @runtimeProperty("ModSettings.mod", "Battering Ram")
   @runtimeProperty("ModSettings.category", "Thunder Breaker (full charge)")
-  @runtimeProperty("ModSettings.category.order", "4")
+  @runtimeProperty("ModSettings.category.order", "5")
   @runtimeProperty("ModSettings.displayName", "EMP damage (% of the weapon's hit)")
   @runtimeProperty("ModSettings.description", "The burst's Electrical damage, as a share of the weapon's own damage per hit. It is not raised by the crit, the charge or the distance.")
   @runtimeProperty("ModSettings.step", "10.0")
@@ -252,7 +327,7 @@ public class BluntLeapSettings extends IScriptable {
 
   @runtimeProperty("ModSettings.mod", "Battering Ram")
   @runtimeProperty("ModSettings.category", "Thunder Breaker (full charge)")
-  @runtimeProperty("ModSettings.category.order", "4")
+  @runtimeProperty("ModSettings.category.order", "5")
   @runtimeProperty("ModSettings.displayName", "Send flying: chance (%)")
   @runtimeProperty("ModSettings.description", "Chance that a fully charged leap sends the enemy flying. Bosses, MaxTac and very large enemies are never sent flying.")
   @runtimeProperty("ModSettings.step", "5.0")
@@ -262,7 +337,7 @@ public class BluntLeapSettings extends IScriptable {
 
   @runtimeProperty("ModSettings.mod", "Battering Ram")
   @runtimeProperty("ModSettings.category", "Thunder Breaker (full charge)")
-  @runtimeProperty("ModSettings.category.order", "4")
+  @runtimeProperty("ModSettings.category.order", "5")
   @runtimeProperty("ModSettings.displayName", "Send flying: chance on heavy enemies (%)")
   @runtimeProperty("ModSettings.description", "The same chance against the game's heavy enemy types.")
   @runtimeProperty("ModSettings.step", "5.0")
@@ -272,7 +347,7 @@ public class BluntLeapSettings extends IScriptable {
 
   @runtimeProperty("ModSettings.mod", "Battering Ram")
   @runtimeProperty("ModSettings.category", "Thunder Breaker (full charge)")
-  @runtimeProperty("ModSettings.category.order", "4")
+  @runtimeProperty("ModSettings.category.order", "5")
   @runtimeProperty("ModSettings.displayName", "Send flying: force (%)")
   @runtimeProperty("ModSettings.description", "How hard the enemy is thrown. 20 keeps it believable; 100 matches the Gorilla Arms knockout punch, which throws enemies very far.")
   @runtimeProperty("ModSettings.step", "5.0")
@@ -282,21 +357,21 @@ public class BluntLeapSettings extends IScriptable {
 
   @runtimeProperty("ModSettings.mod", "Battering Ram")
   @runtimeProperty("ModSettings.category", "Thunder Breaker (full charge)")
-  @runtimeProperty("ModSettings.category.order", "4")
+  @runtimeProperty("ModSettings.category.order", "5")
   @runtimeProperty("ModSettings.displayName", "Push follows the swing")
   @runtimeProperty("ModSettings.description", "On: the enemy is thrown the way the weapon swings (sideways, down or up). Off: straight away from you.")
   public let swingPush: Bool = true;
 
   @runtimeProperty("ModSettings.mod", "Battering Ram")
   @runtimeProperty("ModSettings.category", "Thunder Breaker (full charge)")
-  @runtimeProperty("ModSettings.category.order", "4")
+  @runtimeProperty("ModSettings.category.order", "5")
   @runtimeProperty("ModSettings.displayName", "Stagger when not sent flying")
   @runtimeProperty("ModSettings.description", "On: an enemy that is not sent flying is at least staggered, unless it resists staggers.")
   public let stagger: Bool = true;
 
   @runtimeProperty("ModSettings.mod", "Battering Ram")
   @runtimeProperty("ModSettings.category", "Thunder Breaker (full charge)")
-  @runtimeProperty("ModSettings.category.order", "4")
+  @runtimeProperty("ModSettings.category.order", "5")
   @runtimeProperty("ModSettings.displayName", "Hit stop (s)")
   @runtimeProperty("ModSettings.description", "A very short slow-motion beat when a fully charged leap lands. 0 turns it off.")
   @runtimeProperty("ModSettings.step", "0.01")

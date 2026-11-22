@@ -239,31 +239,19 @@ public func OnEnter(stateContext: ref<StateContext>, scriptInterface: ref<StateG
   // 2. The swing should land on arrival. The game starts it
   //    attackStartupDuration (0.3 s) before arrival, tuned for blades (a
   //    katana's strong attack hits 0.25 s after it starts; knives get their
-  //    own 0.1 s for their 0.08 s). Most blunt strong attacks hit after
-  //    0.29 to 0.31 s, which fits. Two do not:
-  //      - hammers hit after 0.5 s, so they start earlier (hammerLead);
-  //      - fists and Gorilla Arms hit after 0.19 s, so with 0.3 s the punch
-  //        lands about 0.1 s before arrival, short of the enemy. They start
-  //        later (fistLead).
+  //    own 0.1 s for their 0.08 s). Blunt strong attacks hit after: fists and
+  //    Gorilla Arms 0.19 s, one- and two-handed 0.29 s (stun batons 0.31 s),
+  //    hammers 0.5 s. Each type has its own swing start (settings "Swing
+  //    start"; defaults 0.21, 0.21, 0.3, 0.3, 0.5).
   type = WeaponObject.GetWeaponType(weapon.GetItemID());
-  lead = -1.0;
-  if Equals(type, gamedataItemType.Wea_Hammer) {
-    lead = settings.hammerLead;
+  lead = system.SwingStartFor(type);
+  exitTime = stateContext.GetConditionFloatParameter(n"LeapExitTime");
+  if exitTime.valid && AbsF(lead - this.GetStaticFloatParameterDefault("attackStartupDuration", 0.3)) > 0.001 {
+    stateContext.SetConditionFloatParameter(n"LeapExitTime", MaxF(exitTime.value - (lead - this.GetStaticFloatParameterDefault("attackStartupDuration", 0.3)), 0.0), true);
   };
-  if Equals(type, gamedataItemType.Wea_Fists) || Equals(type, gamedataItemType.Cyb_StrongArms) {
-    lead = settings.fistLead;
-  };
-  if lead > 0.0 {
-    exitTime = stateContext.GetConditionFloatParameter(n"LeapExitTime");
-    if exitTime.valid {
-      stateContext.SetConditionFloatParameter(n"LeapExitTime", MaxF(exitTime.value - (lead - this.GetStaticFloatParameterDefault("attackStartupDuration", 0.3)), 0.0), true);
-    };
-  };
-  //    Fists also have the shortest reach (1.5 m), so the punch that ends the
-  //    leap gets extra reach (setting "Fists leap reach bonus").
-  if Equals(type, gamedataItemType.Wea_Fists) || Equals(type, gamedataItemType.Cyb_StrongArms) {
-    system.AddLeapReach(weapon);
-  };
+  //    And the attack that ends the leap may reach farther (settings "Reach
+  //    bonus"; fists and Gorilla Arms, the shortest at 1.5 m, get 1.0 m).
+  system.AddLeapReach(weapon);
 
   if !stored.valid || stored.value <= 0.0 {
     system.Log("Leap, " + FloatToStringPrec(distance, 1) + " m, no charge");

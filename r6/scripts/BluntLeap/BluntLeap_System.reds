@@ -755,16 +755,21 @@ public class BluntLeapSystem extends ScriptableSystem {
     this.Log("Charge (" + source + "): rate set to " + FloatToStringPrec(rate, 1) + " per s");
   }
 
-  // A leap with fists or Gorilla Arms has started: the punch at its end gets
-  // extra reach. A melee hit's box is as long as the weapon's Range stat
+  // A leap has started: the attack at its end gets the extra reach set for
+  // the weapon type (settings "Reach bonus"; fists and Gorilla Arms 1.0 m by
+  // default, the others none). A melee hit's box is as long as the weapon's Range stat
   // (MeleeAttackGenericEvents.CreateMeleeAttack). After a leap the game does
   // not move V towards the target again (the attack's move-to-target, the
   // other use of Range, is skipped when it follows a leap), so the bonus
   // only lengthens the punch. It is taken off when that attack ends, or when
   // the leap ends without one.
   public final func AddLeapReach(weapon: wref<WeaponObject>) -> Void {
-    let bonus: Float = this.Settings().fistLeapReach;
+    let bonus: Float;
     this.RemoveLeapReach();
+    if !IsDefined(weapon) {
+      return;
+    };
+    bonus = this.LeapReachFor(WeaponObject.GetWeaponType(weapon.GetItemID()));
     if !IsDefined(weapon) || bonus <= 0.0 {
       return;
     };
@@ -772,6 +777,43 @@ public class BluntLeapSystem extends ScriptableSystem {
     this.m_reachId = weapon.GetEntityID();
     GameInstance.GetStatsSystem(weapon.GetGame()).AddModifier(Cast<StatsObjectID>(this.m_reachId), this.m_reachMod);
     this.Log("Leap reach +" + FloatToStringPrec(bonus, 1) + " m");
+  }
+
+  // How long before landing the leap's strong attack starts (settings
+  // "Swing start"). The game uses 0.3 s for every weapon.
+  public final func SwingStartFor(type: gamedataItemType) -> Float {
+    let settings: ref<BluntLeapSettings> = this.Settings();
+    switch type {
+      case gamedataItemType.Wea_Fists:
+        return settings.fistLead;
+      case gamedataItemType.Cyb_StrongArms:
+        return settings.gorillaLead;
+      case gamedataItemType.Wea_OneHandedClub:
+        return settings.oneHandedLead;
+      case gamedataItemType.Wea_TwoHandedClub:
+        return settings.twoHandedLead;
+      case gamedataItemType.Wea_Hammer:
+        return settings.hammerLead;
+    };
+    return 0.3;
+  }
+
+  // Extra reach for the attack that ends a leap (settings "Reach bonus").
+  public final func LeapReachFor(type: gamedataItemType) -> Float {
+    let settings: ref<BluntLeapSettings> = this.Settings();
+    switch type {
+      case gamedataItemType.Wea_Fists:
+        return settings.fistLeapReach;
+      case gamedataItemType.Cyb_StrongArms:
+        return settings.gorillaLeapReach;
+      case gamedataItemType.Wea_OneHandedClub:
+        return settings.oneHandedLeapReach;
+      case gamedataItemType.Wea_TwoHandedClub:
+        return settings.twoHandedLeapReach;
+      case gamedataItemType.Wea_Hammer:
+        return settings.hammerLeapReach;
+    };
+    return 0.0;
   }
 
   public final func RemoveLeapReach() -> Void {
