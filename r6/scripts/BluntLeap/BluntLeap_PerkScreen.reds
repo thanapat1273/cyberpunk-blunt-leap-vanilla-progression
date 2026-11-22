@@ -10,6 +10,8 @@
 //     different level than the straight middle, with a short jog between.
 //   - A small Dash box under Blunt leap while Dash is required, made of the
 //     game's own perk-box pictures at 60% size: red without Dash, gold with.
+//     It reacts to the pointer like a perk box and opens Dash's own perk card,
+//     with a line saying where Dash is and why Battering Ram needs it.
 // Colours and states come from the game's own style file, exactly as for
 // the game's nodes and wires. No layout file is edited.
 //
@@ -159,10 +161,11 @@ private final func BluntLeap_Wire(trees: wref<inkCompoundWidget>, name: CName, p
 }
 
 // One layer of a perk box: a picture centred in the box, tinted (and faded)
-// by the game's own perk-box style.
+// by the game's own perk-box style. Layers carry the game's own names.
 @addMethod(NewPerksScreenLogicController)
-private final func BluntLeap_BoxLayer(box: wref<inkCanvas>, atlas: ResRef, part: CName, width: Float, height: Float, tint: CName, opacity: CName) -> Void {
+private final func BluntLeap_BoxLayer(box: wref<inkCanvas>, name: CName, atlas: ResRef, part: CName, width: Float, height: Float, tint: CName, opacity: CName) -> wref<inkImage> {
   let layer: ref<inkImage> = new inkImage();
+  layer.SetName(name);
   layer.SetAtlasResource(atlas);
   layer.SetTexturePart(part);
   layer.SetAnchor(inkEAnchor.Centered);
@@ -175,15 +178,19 @@ private final func BluntLeap_BoxLayer(box: wref<inkCanvas>, atlas: ResRef, part:
   };
   layer.SetInteractive(false);
   layer.Reparent(box);
+  return layer;
 }
 
 // The small Dash box: the game's perk box at 60%, 48 px under Blunt leap
-// (the game's gap between two stacked perks).
+// (the game's gap between two stacked perks). It reacts to the pointer like
+// a perk box and opens Dash's own perk card.
 @addMethod(NewPerksScreenLogicController)
 private final func BluntLeap_DashBox(trees: wref<inkCompoundWidget>) -> wref<inkCanvas> {
   let existing: wref<inkWidget> = trees.GetWidgetByPathName(n"BluntLeap_DashBox");
   let box: ref<inkCanvas>;
   let icon: ref<UIIcon_Record>;
+  let image: wref<inkImage>;
+  let sweep: wref<inkImage>;
   let cells: ResRef = r"base\\gameplay\\gui\\fullscreen\\perks\\perks_new.inkatlas";
   if IsDefined(existing) {
     return existing as inkCanvas;
@@ -198,18 +205,189 @@ private final func BluntLeap_DashBox(trees: wref<inkCompoundWidget>) -> wref<ink
   box.SetRenderTransformPivot(0.5, 0.5);
   box.SetScale(new Vector2(0.6, 0.6));
   box.SetStyle(r"base\\gameplay\\gui\\fullscreen\\perks\\new_perks_style.inkstyle");
-  box.SetInteractive(false);
   // Back to front, as the game layers its perk box.
-  this.BluntLeap_BoxLayer(box, cells, n"Perk_Cell_outer_bg", 133.0, 142.0, n"PerkCellBase.backgroundColorOuter", n"");
-  this.BluntLeap_BoxLayer(box, cells, n"Perk_Cell_outer_fg", 133.0, 142.0, n"PerkCellBase.foregroundColor", n"PerkCellBase.foregroundOpacity");
-  this.BluntLeap_BoxLayer(box, cells, n"Perk_Cell_inner_bg", 125.0, 116.0, n"PerkCellBase.backgroundColorInner", n"");
+  this.BluntLeap_BoxLayer(box, n"cell_outer_bg", cells, n"Perk_Cell_outer_bg", 133.0, 142.0, n"PerkCellBase.backgroundColorOuter", n"");
+  this.BluntLeap_BoxLayer(box, n"cell_outer_fg", cells, n"Perk_Cell_outer_fg", 133.0, 142.0, n"PerkCellBase.foregroundColor", n"PerkCellBase.foregroundOpacity");
+  this.BluntLeap_BoxLayer(box, n"cell_inner_bg", cells, n"Perk_Cell_inner_bg", 125.0, 116.0, n"PerkCellBase.backgroundColorInner", n"");
   icon = TweakDBInterface.GetUIIconRecord(t"UIIcon.Reflexes_Central_Milestone_2");
   if IsDefined(icon) {
-    this.BluntLeap_BoxLayer(box, icon.AtlasResourcePath(), icon.AtlasPartName(), 125.0, 116.0, n"PerkCellBase.iconColor", n"PerkCellBase.iconOpacity");
+    image = this.BluntLeap_BoxLayer(box, n"ico_master", icon.AtlasResourcePath(), icon.AtlasPartName(), 125.0, 116.0, n"PerkCellBase.iconColor", n"PerkCellBase.iconOpacity");
+    image.SetRenderTransformPivot(0.5, 0.5);
   };
-  this.BluntLeap_BoxLayer(box, cells, n"Perk_Cell_inner_fg", 125.0, 116.0, n"PerkCellBase.foregroundColorInner", n"PerkCellBase.foregroundColorInnerOpacity");
+  // The light that sweeps across the box on hover, as on the game's boxes.
+  sweep = this.BluntLeap_BoxLayer(box, n"cell_inner_fg_9slices", cells, n"Perk_Cell_inner_fg_9slices", 40.0, 116.0, n"PerkCellBase.foregroundColorInner", n"");
+  sweep.SetNineSliceScale(true);
+  sweep.SetNineSliceGrid(new inkMargin(20.0, 0.0, 20.0, 0.0));
+  sweep.SetOpacity(0.0);
+  this.BluntLeap_BoxLayer(box, n"cell_inner_fg", cells, n"Perk_Cell_inner_fg", 125.0, 116.0, n"PerkCellBase.foregroundColorInner", n"PerkCellBase.foregroundColorInnerOpacity");
+  // Only the box itself takes the pointer.
+  box.SetInteractive(true);
+  box.RegisterToCallback(n"OnHoverOver", this, n"OnBluntLeapDashHoverOver");
+  box.RegisterToCallback(n"OnHoverOut", this, n"OnBluntLeapDashHoverOut");
   box.Reparent(trees);
   return box;
+}
+
+@addField(NewPerksScreenLogicController)
+private let m_bluntLeapDashHovered: Bool;
+
+@addMethod(NewPerksScreenLogicController)
+protected cb func OnBluntLeapDashHoverOver(evt: ref<inkPointerEvent>) -> Bool {
+  let trees: wref<inkCompoundWidget>;
+  let box: wref<inkWidget>;
+  if !this.m_isActiveScreen {
+    return false;
+  };
+  trees = this.BluntLeap_Trees();
+  if !IsDefined(trees) {
+    return false;
+  };
+  box = trees.GetWidgetByPathName(n"BluntLeap_DashBox");
+  if !IsDefined(box) || !box.IsVisible() {
+    return false;
+  };
+  this.m_bluntLeapDashHovered = true;
+  this.SetCursorContext(n"Hover");
+  this.BluntLeap_UpdateWires();
+  this.BluntLeap_DashHoverAnimation(box as inkCompoundWidget, true);
+  if IsDefined(this.m_gameController) {
+    this.m_gameController.BluntLeap_ShowDashCard(box);
+  };
+  return false;
+}
+
+@addMethod(NewPerksScreenLogicController)
+protected cb func OnBluntLeapDashHoverOut(evt: ref<inkPointerEvent>) -> Bool {
+  let trees: wref<inkCompoundWidget>;
+  if !this.m_bluntLeapDashHovered {
+    return false;
+  };
+  this.m_bluntLeapDashHovered = false;
+  this.SetCursorContext(n"Default");
+  this.BluntLeap_UpdateWires();
+  trees = this.BluntLeap_Trees();
+  if IsDefined(trees) {
+    this.BluntLeap_DashHoverAnimation(trees.GetWidgetByPathName(n"BluntLeap_DashBox") as inkCompoundWidget, false);
+  };
+  if IsDefined(this.m_gameController) {
+    this.m_gameController.BluntLeap_HideDashCard();
+  };
+  return false;
+}
+
+// The game's hover on a perk box (perk_cell_hoverover / _hoverout): the icon
+// grows by 8%, and a faint light sweeps across the box.
+@addMethod(NewPerksScreenLogicController)
+private final func BluntLeap_DashHoverAnimation(box: wref<inkCompoundWidget>, over: Bool) -> Void {
+  let icon: wref<inkWidget>;
+  let sweep: wref<inkWidget>;
+  let iconAnim: ref<inkAnimDef>;
+  let grow: ref<inkAnimScale>;
+  let sweepAnim: ref<inkAnimDef>;
+  let size: ref<inkAnimSize>;
+  let fadeIn: ref<inkAnimTransparency>;
+  let fadeOut: ref<inkAnimTransparency>;
+  if !IsDefined(box) {
+    return;
+  };
+  icon = box.GetWidgetByPathName(n"ico_master");
+  sweep = box.GetWidgetByPathName(n"cell_inner_fg_9slices");
+  if IsDefined(icon) {
+    grow = new inkAnimScale();
+    grow.SetStartScale(over ? new Vector2(1.0, 1.0) : new Vector2(1.08, 1.08));
+    grow.SetEndScale(over ? new Vector2(1.08, 1.08) : new Vector2(1.0, 1.0));
+    grow.SetDuration(0.156);
+    grow.SetType(inkanimInterpolationType.Quadratic);
+    grow.SetMode(inkanimInterpolationMode.EasyOut);
+    iconAnim = new inkAnimDef();
+    iconAnim.AddInterpolator(grow);
+    icon.PlayAnimation(iconAnim);
+  };
+  if over && IsDefined(sweep) {
+    size = new inkAnimSize();
+    size.SetStartSize(new Vector2(40.0, 116.0));
+    size.SetEndSize(new Vector2(116.0, 116.0));
+    size.SetDuration(0.1865);
+    fadeIn = new inkAnimTransparency();
+    fadeIn.SetStartTransparency(0.0);
+    fadeIn.SetEndTransparency(0.3);
+    fadeIn.SetDuration(0.038);
+    fadeOut = new inkAnimTransparency();
+    fadeOut.SetStartTransparency(0.3);
+    fadeOut.SetEndTransparency(0.0);
+    fadeOut.SetStartDelay(0.1545);
+    fadeOut.SetDuration(0.0325);
+    sweepAnim = new inkAnimDef();
+    sweepAnim.AddInterpolator(size);
+    sweepAnim.AddInterpolator(fadeIn);
+    sweepAnim.AddInterpolator(fadeOut);
+    sweep.PlayAnimation(sweepAnim);
+  };
+}
+
+// Dash's own perk card, opened from the Dash box: the same card as on the
+// Reflexes page, placed beside the box the way the game places a perk's card.
+// Marked, so the card adds where Dash is and why it is needed, and shows no
+// buy or sell hints (BluntLeap_Perks.reds).
+@addMethod(NewPerksCategoriesGameController)
+public final func BluntLeap_ShowDashCard(box: wref<inkWidget>) -> Void {
+  let dash: gamedataNewPerkType = gamedataNewPerkType.Reflexes_Central_Milestone_2;
+  let record: ref<NewPerk_Record> = RPGManager.GetNewPerkRecord(dash);
+  let development: ref<PlayerDevelopmentData>;
+  let data: ref<NewPerkDisplayData>;
+  let tooltipData: ref<BasePerksMenuTooltipData>;
+  let holder: wref<inkWidget>;
+  let boxPosition: Vector2;
+  let boxSize: Vector2;
+  let holderPosition: Vector2;
+  let inverse: Float;
+  let scale: Float = 0.6;
+  let marginX: Float;
+  let marginY: Float;
+  if !IsDefined(box) || !IsDefined(record) || !IsDefined(this.m_player) || !IsDefined(this.m_tooltipsManager) || !IsDefined(this.m_uiSystem) {
+    return;
+  };
+  development = PlayerDevelopmentSystem.GetData(this.m_player);
+  if !IsDefined(development) {
+    return;
+  };
+  data = new NewPerkDisplayData();
+  data.m_type = dash;
+  data.m_area = gamedataNewPerkSlotType.Central_Milestone_2;
+  data.m_binkRef = record.BinkPath();
+  data.m_level = development.IsNewPerkBought(dash);
+  data.m_maxLevel = record.GetLevelsCount();
+  data.m_locked = !development.IsNewPerkUnlocked(dash);
+  data.bluntLeapDashBox = true;
+  tooltipData = data.CreateTooltipData(this.m_dataManager);
+  if !IsDefined(tooltipData) {
+    return;
+  };
+  inverse = this.m_uiSystem.GetInverseUIScale();
+  boxPosition = WidgetUtils.LocalToGlobal(box);
+  boxSize = box.GetSize();
+  if boxPosition.X < this.AdjustValueToScaleAndBlackBars(1400.0) {
+    holder = inkWidgetRef.Get(this.m_perkTooltipPlacementRight);
+    holderPosition = WidgetUtils.LocalToGlobal(holder);
+    // The box is drawn at 60% around its centre: its right edge.
+    marginX = ((boxPosition.X + boxSize.X * (1.0 + scale) / 2.0 / inverse) - holderPosition.X + 50.0 / inverse) * inverse;
+    marginY = ((boxPosition.Y - holderPosition.Y) + boxSize.Y / inverse / 2.0) * inverse;
+    this.m_tooltipsManager.ShowTooltipAtWidget(n"perkTooltip", holder, tooltipData, gameuiETooltipPlacement.RightCenter, true, new inkMargin(marginX, marginY, 0.0, 0.0));
+    this.ShowTooltipBackground(this.m_perkTooltipBgRight);
+  } else {
+    holder = inkWidgetRef.Get(this.m_perkTooltipPlacementLeft);
+    holderPosition = WidgetUtils.LocalToGlobal(holder);
+    // Its left edge.
+    marginX = ((boxPosition.X + boxSize.X * (1.0 - scale) / 2.0 / inverse) - holderPosition.X - 100.0 / inverse) * inverse;
+    marginY = ((boxPosition.Y - holderPosition.Y) + boxSize.Y / inverse / 2.0) * inverse;
+    this.m_tooltipsManager.ShowTooltipAtWidget(n"perkTooltip", holder, tooltipData, gameuiETooltipPlacement.LeftCenter, true, new inkMargin(marginX, marginY, 0.0, 0.0));
+    this.ShowTooltipBackground(this.m_perkTooltipBgLeft);
+  };
+}
+
+@addMethod(NewPerksCategoriesGameController)
+public final func BluntLeap_HideDashCard() -> Void {
+  this.HideTooltip();
 }
 
 // Sets a style state on a widget and on every widget inside it.
@@ -312,9 +490,9 @@ private final func BluntLeap_UpdateWires() -> Void {
       };
     };
     if hasDash {
-      this.BluntLeap_SetState(dashBox, n"Bought");
+      this.BluntLeap_SetState(dashBox, this.m_bluntLeapDashHovered ? n"BoughtHover" : n"Bought");
     } else {
-      if this.m_bluntLeapFlash {
+      if this.m_bluntLeapFlash || this.m_bluntLeapDashHovered {
         this.BluntLeap_SetState(dashBox, n"LockedHover");
       } else {
         this.BluntLeap_SetState(dashBox, n"Locked");

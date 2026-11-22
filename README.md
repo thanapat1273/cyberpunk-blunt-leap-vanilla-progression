@@ -2,7 +2,7 @@
 
 A Cyberpunk 2077 mod that lets V do the leap attack with blunt weapons: fists, one-handed and two-handed blunt weapons, hammers, stun batons and Gorilla Arms.
 
-The goal is a mod that feels like part of the game: two new perks in the Body tree, the same leap blades already have, and every number adjustable in Mod Settings.
+The goal is a mod that feels like part of the game: two new perks in the Body tree, **Battering Ram** and **Thunder Breaker**, the same leap blades already have, and every number adjustable in Mod Settings.
 
 <img src="art/blunt-leap-icon-preview.png" width="250" alt="Blunt leap perk icon"> <img src="art/stronger-leap-icon-preview.png" width="250" alt="Stronger leap perk icon">
 

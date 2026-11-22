@@ -144,13 +144,47 @@ public final func ResetNewPerks() -> Void {
   };
 }
 
-// The Dash requirement, part 3: the tooltip says what is missing.
+// Marks the perk card opened from the Dash box on the Body page (see
+// BluntLeap_PerkScreen.reds), so its card can say where Dash is and why it is
+// there, and offer no buy or sell.
+@addField(NewPerkDisplayData)
+public let bluntLeapDashBox: Bool;
+
+// The Dash requirement, part 3: the cards say what is missing.
+//   - Battering Ram's card, while Dash is missing: "Requires Dash ...".
+//   - The Dash box's card: where to get Dash and why Battering Ram needs it.
 @wrapMethod(PerkDisplayTooltipController)
 private final func UpdateRequirements(playerDevelopmentData: wref<PlayerDevelopmentData>, data: ref<NewPerkTooltipData>) -> Void {
+  let record: ref<NewPerk_Record>;
+  let level: Int32 = 9;
   wrappedMethod(playerDevelopmentData, data);
-  if IsDefined(playerDevelopmentData) && IsDefined(data) && playerDevelopmentData.BluntLeap_BlockedByDash(data.perkType) {
+  if !IsDefined(data) {
+    return;
+  };
+  if IsDefined(data.perkData) && data.perkData.bluntLeapDashBox {
+    record = RPGManager.GetNewPerkRecord(gamedataNewPerkType.Reflexes_Central_Milestone_2);
+    if IsDefined(record) && IsDefined(record.Tier()) {
+      level = record.Tier().RequiredAttributePoints();
+    };
     inkWidgetRef.SetVisible(this.m_unlockInfoWrapper, true);
     inkTextRef.SetText(this.m_unlockPointsText, "");
-    inkTextRef.SetText(this.m_unlockPointsDesc, GetLocalizedTextByKey(n"BluntLeap-Perk-NeedsDash"));
+    inkTextRef.SetText(this.m_unlockPointsDesc, StrReplace(GetLocalizedText("BluntLeap-Dash-Why"), "{0}", IntToString(level)));
+    return;
+  };
+  if IsDefined(playerDevelopmentData) && playerDevelopmentData.BluntLeap_BlockedByDash(data.perkType) {
+    inkWidgetRef.SetVisible(this.m_unlockInfoWrapper, true);
+    inkTextRef.SetText(this.m_unlockPointsText, "");
+    inkTextRef.SetText(this.m_unlockPointsDesc, GetLocalizedText("BluntLeap-Perk-NeedsDash"));
+  };
+}
+
+// The Dash box's card shows Dash, a perk of another page: no buy or sell
+// hints on it.
+@wrapMethod(PerkDisplayTooltipController)
+private final func UpdateTooltipHints(data: ref<BasePerksMenuTooltipData>, perkData: ref<BasePerkDisplayData>) -> Void {
+  let newPerk: ref<NewPerkDisplayData> = perkData as NewPerkDisplayData;
+  wrappedMethod(data, perkData);
+  if IsDefined(newPerk) && newPerk.bluntLeapDashBox {
+    inkWidgetRef.SetVisible(this.m_inputHints, false);
   };
 }

@@ -56,6 +56,13 @@ public class BluntLeapSystem extends ScriptableSystem {
   private let m_empDone: Bool;
   private let m_hitStopDone: Bool;
 
+  // What the perk texts were last set to, so the records are only touched
+  // when a setting really changed (the perk screen may be open on a refresh).
+  private let m_appliedLeapDesc: String;
+  private let m_appliedStrongerDesc: String;
+  private let m_appliedLeapFloats: String;
+  private let m_appliedStrongerFloats: String;
+
   public final static func Get(game: GameInstance) -> ref<BluntLeapSystem> {
     return GameInstance.GetScriptableSystemsContainer(game).Get(n"BluntLeapSystem") as BluntLeapSystem;
   }
@@ -235,11 +242,7 @@ public class BluntLeapSystem extends ScriptableSystem {
 
     this.UpdateOwnership();
 
-    // The numbers shown in the two perks' descriptions follow the settings.
-    TweakDBManager.SetFlat(t"NewPerks.BluntLeap_Leap_UI.floatValues", ToVariant([settings.distanceBonus]));
-    TweakDBManager.UpdateRecord(t"NewPerks.BluntLeap_Leap_UI");
-    TweakDBManager.SetFlat(t"NewPerks.BluntLeap_Stronger_UI.floatValues", ToVariant([settings.extraRange, settings.launchChance]));
-    TweakDBManager.UpdateRecord(t"NewPerks.BluntLeap_Stronger_UI");
+    this.UpdatePerkTexts();
 
     packages.RemovePackage(player, t"BluntLeap.LeapAbility");
     packages.RemovePackage(player, t"BluntLeap.AirLeapAbility");
@@ -266,6 +269,45 @@ public class BluntLeapSystem extends ScriptableSystem {
       packages.ApplyPackage(player, player, t"BluntLeap.Impact");
     };
     this.Log("Applied: leap=" + ToString(this.m_hasLeap) + " stronger=" + ToString(this.m_hasStronger));
+  }
+
+  // ---------------------------------------------------------- perk texts
+
+  // Points each perk at the description that matches the settings, and puts
+  // the numbers the descriptions show ({float_0}, ...) into the perk records.
+  // The default description keys are already in the records, so with default
+  // settings nothing is rewritten.
+  private final func UpdatePerkTexts() -> Void {
+    let settings: ref<BluntLeapSettings> = this.Settings();
+    let leapDesc: String = BluntLeapEnglish.LeapKey(settings.alwaysCharged, settings.airLeap, settings.distanceBonus > 0.0);
+    let strongerDesc: String = BluntLeapEnglish.StrongerKey(settings.emp, settings.stagger);
+    let leapFloats: String = FloatToStringPrec(settings.distanceBonus, 2);
+    let strongerFloats: String = FloatToStringPrec(settings.extraRange, 2) + "/" + FloatToStringPrec(settings.launchChance, 2) + "/" + FloatToStringPrec(settings.launchChanceHeavy, 2);
+
+    if NotEquals(this.m_appliedLeapFloats, leapFloats) {
+      TweakDBManager.SetFlat(t"NewPerks.BluntLeap_Leap_UI.floatValues", ToVariant([settings.distanceBonus]));
+      TweakDBManager.UpdateRecord(t"NewPerks.BluntLeap_Leap_UI");
+      this.m_appliedLeapFloats = leapFloats;
+    };
+    if NotEquals(this.m_appliedStrongerFloats, strongerFloats) {
+      TweakDBManager.SetFlat(t"NewPerks.BluntLeap_Stronger_UI.floatValues", ToVariant([settings.extraRange, settings.launchChance, settings.launchChanceHeavy]));
+      TweakDBManager.UpdateRecord(t"NewPerks.BluntLeap_Stronger_UI");
+      this.m_appliedStrongerFloats = strongerFloats;
+    };
+    if NotEquals(this.m_appliedLeapDesc, leapDesc) {
+      if NotEquals(TweakDBInterface.GetString(t"NewPerks.BluntLeap_Leap.loc_desc_key", ""), leapDesc) {
+        TweakDBManager.SetFlat(t"NewPerks.BluntLeap_Leap.loc_desc_key", ToVariant(leapDesc));
+        TweakDBManager.UpdateRecord(t"NewPerks.BluntLeap_Leap");
+      };
+      this.m_appliedLeapDesc = leapDesc;
+    };
+    if NotEquals(this.m_appliedStrongerDesc, strongerDesc) {
+      if NotEquals(TweakDBInterface.GetString(t"NewPerks.BluntLeap_Stronger.loc_desc_key", ""), strongerDesc) {
+        TweakDBManager.SetFlat(t"NewPerks.BluntLeap_Stronger.loc_desc_key", ToVariant(strongerDesc));
+        TweakDBManager.UpdateRecord(t"NewPerks.BluntLeap_Stronger");
+      };
+      this.m_appliedStrongerDesc = strongerDesc;
+    };
   }
 
   // ------------------------------------------------------- stronger leap

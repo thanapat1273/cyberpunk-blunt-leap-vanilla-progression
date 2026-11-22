@@ -1,8 +1,8 @@
 # Blunt Leap: the agreed design (spec)
 
-- **Status (2026-11-22):** design agreed with the user; all three build steps are written and compile; **nothing has been tested in game yet**. Working names throughout.
+- **Status (2026-11-22):** design agreed with the user; all three build steps are written and compile; the first build was play-tested and the second build is installed. Perk names: **Battering Ram** and **Thunder Breaker**.
 - **Code:** `github.com/thanapat1273/cyberpunk-blunt-leap-vanilla-progression`
-- **Where things come from:** the user's own words are in [`DESIGN-NOTES.md`](DESIGN-NOTES.md) (decisions D1–D34; kept locally, not in the repository). The game facts are in [`RESEARCH.md`](RESEARCH.md).
+- **Where things come from:** the user's own words are in [`DESIGN-NOTES.md`](DESIGN-NOTES.md) (decisions D1–D39; kept locally, not in the repository). The game facts are in [`RESEARCH.md`](RESEARCH.md).
 - **If this file and the notes disagree, the notes win.** Fix this file.
 
 ---
@@ -15,8 +15,8 @@ It adds two perks to the Body tree:
 
 | Perk (working name) | Cost | What it gives |
 |---|---|---|
-| **Blunt leap** | 1 perk point | The blade leap, for blunt weapons: releasing a held strong attack at an enemy 2–15 m away leaps to them. Works in mid-air. Up to +50% damage with distance. |
-| **Stronger leap** | 1 perk point | On a **fully charged** leap: +50% range (22.5 m) and faster travel; an EMP burst on a crit; a strong chance to send the enemy flying, or else a guaranteed stagger. |
+| **Battering Ram** ("Blunt leap" in older notes) | 1 perk point | The blade leap, for blunt weapons: releasing a held strong attack at an enemy 2–15 m away leaps to them. Works in mid-air. Up to +50% damage with distance. |
+| **Thunder Breaker** ("Stronger leap" in older notes) | 1 perk point | On a **fully charged** leap: +50% range (22.5 m) and faster travel; an EMP burst on a crit; a strong chance to send the enemy flying, or else a guaranteed stagger. |
 
 ## 2. Where the perks sit (Layout 1)
 
@@ -129,7 +129,6 @@ One setting: **"Always charged" mode**, **off by default**. Off: any heavy attac
 ## 8. Still open
 
 - Which Dash-requirement look to keep (§2), decided in testing.
-- Names for both perks.
 - **The Blunt leap icon is done** (D25, version 3): `art/blunt-leap-icon.png`, packed into `archive/pc/mod/BluntLeap.archive` by `tools/pack_icons.sh` and used by the perk (`UIIcon.BluntLeap_Leap`).
 - **The Stronger leap icon is done** (D29): `art/stronger-leap-icon.png`, the game's In Charge icon with its bullet replaced by Kinetic Absorption's fist (built by `tools/make_stronger_icon.py`), in the same archive and used by the perk (`UIIcon.BluntLeap_Stronger`).
 - Neither icon has been seen in game yet.
@@ -191,10 +190,39 @@ Every wrapper calls the original first. Nothing is replaced. Finisher leaps and 
 - **Dash box:** the game's perk-box pictures (`Perk_Cell_*`) with `PerkCellBase.*` style bindings, at 60%, centred 48 px under Blunt leap; `Locked` without Dash, `Bought` with it. Not clickable.
 - Mockup: `notes/2026-11-22-proposal-perk-screen-v3.png` (local).
 
+### Names, texts and the Dash card (2026-11-22, D37–D39)
+
+**Names:** **Battering Ram** (the leap perk) and **Thunder Breaker** (the full-charge perk). The game shows them in capitals.
+
+**Descriptions** (default settings; the numbers follow the settings):
+
+> **BATTERING RAM**
+> When performing Strong Attacks with Blunt Weapons, you now **automatically leap** to enemies within range.
+>
+> These **Leap Attacks** can also be performed from midair, and deal additional damage that scales with the distance of the leap (max. +50%).
+
+> **THUNDER BREAKER**
+> Holding a Strong Attack with Blunt Weapons now charges it up.
+>
+> A **fully charged Leap Attack** reaches **+50% farther** and lands faster. Its hit can **send the enemy flying** (80% chance, 30% against heavy enemies) and staggers them otherwise.
+>
+> Crit Hits also release an **EMP blast** around the target.
+
+- **Models:** Flash and Thunderclap (the game's blade leap) and the Gorilla Arms charged attack.
+- **Variants:** settings that change what a perk does switch the description to a matching variant:
+  - Battering Ram: "Always charged" ("fully charged Strong Attacks"), mid-air off, distance bonus 0 (8 variants);
+  - Thunder Breaker: EMP off, stagger off (4 variants).
+  - The system points the perk record at the matching key and writes the numbers, only when a setting changed (`BluntLeapSystem.UpdatePerkTexts`).
+
+**The Dash box's card:**
+- Hovering the box plays the game's perk-box hover: the icon grows 8% and a faint light sweeps across.
+- It opens Dash's own perk card (the same card as on the Reflexes page: name, video, both levels, its state), placed beside the box the way the game places a perk's card.
+- The card shows no buy or sell hints, and adds one line: "Found in the Reflexes tree (Reflexes 9). Battering Ram needs both of its levels: the leap is a Dash that ends in a heavy hit."
+- Hooks: two `cb func`s on `NewPerksScreenLogicController` (box hover), two methods added to `NewPerksCategoriesGameController` (show and hide the card), a field on `NewPerkDisplayData` (marks the card), and a wrapper on `PerkDisplayTooltipController.UpdateTooltipHints`.
+
 ### Not built
 
 - **Screen-edge pulse at full charge** (default Off in §5): no suitable game effect picked yet.
-- **Perk names:** still the working names.
 
 ### Deviations from §1–§6
 

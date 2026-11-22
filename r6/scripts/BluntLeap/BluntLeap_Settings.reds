@@ -5,8 +5,8 @@
 enum BluntLeapUnlockRule {
   DashAndPerks = 0,   // the two perks; the first also needs Dash
   PerksOnly = 1,      // the two perks, no Dash
-  AlwaysBoth = 2,     // no perks: leap and stronger leap, always
-  AlwaysLeap = 3      // no perks: leap only, always
+  AlwaysBoth = 2,     // no perks: Battering Ram and Thunder Breaker, always
+  AlwaysLeap = 3      // no perks: Battering Ram only, always
 }
 
 public class BluntLeapSettings extends IScriptable {
@@ -28,17 +28,17 @@ public class BluntLeapSettings extends IScriptable {
   @runtimeProperty("ModSettings.category.order", "1")
   @runtimeProperty("ModSettings.displayName", "Unlock rule")
   @runtimeProperty("ModSettings.description", "How the leap is unlocked. Applies the next time you load a save. Points spent on a perk that is no longer needed, or no longer allowed, are refunded.")
-  @runtimeProperty("ModSettings.displayValues.DashAndPerks", "Perks, the first needs Dash")
+  @runtimeProperty("ModSettings.displayValues.DashAndPerks", "Perks; Battering Ram needs Dash")
   @runtimeProperty("ModSettings.displayValues.PerksOnly", "Perks, no Dash needed")
-  @runtimeProperty("ModSettings.displayValues.AlwaysBoth", "No perks: leap and stronger leap")
-  @runtimeProperty("ModSettings.displayValues.AlwaysLeap", "No perks: leap only")
+  @runtimeProperty("ModSettings.displayValues.AlwaysBoth", "No perks: Battering Ram and Thunder Breaker")
+  @runtimeProperty("ModSettings.displayValues.AlwaysLeap", "No perks: Battering Ram only")
   public let unlockRule: BluntLeapUnlockRule = BluntLeapUnlockRule.DashAndPerks;
 
   @runtimeProperty("ModSettings.mod", "Blunt Leap")
   @runtimeProperty("ModSettings.category", "General")
   @runtimeProperty("ModSettings.category.order", "1")
-  @runtimeProperty("ModSettings.displayName", "Dash marker on the perk screen")
-  @runtimeProperty("ModSettings.description", "When the first perk needs Dash: On shows a small Dash marker with a line above the perk. Off shows only the lock and the text in the tooltip.")
+  @runtimeProperty("ModSettings.displayName", "Dash box on the perk screen")
+  @runtimeProperty("ModSettings.description", "When Battering Ram needs Dash: On shows a small Dash box under it, joined by a wire, with its own tooltip. Off shows only the lock and the line in Battering Ram's tooltip.")
   public let dashMarker: Bool = true;
 
   @runtimeProperty("ModSettings.mod", "Blunt Leap")
@@ -51,24 +51,24 @@ public class BluntLeapSettings extends IScriptable {
   // ---------------------------------------------------------------- leap
 
   @runtimeProperty("ModSettings.mod", "Blunt Leap")
-  @runtimeProperty("ModSettings.category", "Leap")
+  @runtimeProperty("ModSettings.category", "Battering Ram (the leap)")
   @runtimeProperty("ModSettings.category.order", "2")
   @runtimeProperty("ModSettings.displayName", "Leap range (m)")
-  @runtimeProperty("ModSettings.description", "How far away an enemy can be for the leap. 15 is the blade leap's range. The stronger leap adds its own extra range on top.")
+  @runtimeProperty("ModSettings.description", "How far away an enemy can be for the leap. 15 is the blade leap's range. Thunder Breaker adds its own extra range on top.")
   @runtimeProperty("ModSettings.step", "0.5")
   @runtimeProperty("ModSettings.min", "5.0")
   @runtimeProperty("ModSettings.max", "15.0")
   public let leapRange: Float = 15.0;
 
   @runtimeProperty("ModSettings.mod", "Blunt Leap")
-  @runtimeProperty("ModSettings.category", "Leap")
+  @runtimeProperty("ModSettings.category", "Battering Ram (the leap)")
   @runtimeProperty("ModSettings.category.order", "2")
   @runtimeProperty("ModSettings.displayName", "Leap in mid-air")
   @runtimeProperty("ModSettings.description", "On: you can start a leap while jumping or falling, as with blades.")
   public let airLeap: Bool = true;
 
   @runtimeProperty("ModSettings.mod", "Blunt Leap")
-  @runtimeProperty("ModSettings.category", "Leap")
+  @runtimeProperty("ModSettings.category", "Battering Ram (the leap)")
   @runtimeProperty("ModSettings.category.order", "2")
   @runtimeProperty("ModSettings.displayName", "Distance damage bonus (%)")
   @runtimeProperty("ModSettings.description", "Extra damage for the leap's hit, growing with the distance leaped and reaching this value at 20 m. 50 is the blade leap's value. 0 turns it off.")
@@ -78,7 +78,7 @@ public class BluntLeapSettings extends IScriptable {
   public let distanceBonus: Float = 50.0;
 
   @runtimeProperty("ModSettings.mod", "Blunt Leap")
-  @runtimeProperty("ModSettings.category", "Leap")
+  @runtimeProperty("ModSettings.category", "Battering Ram (the leap)")
   @runtimeProperty("ModSettings.category.order", "2")
   @runtimeProperty("ModSettings.displayName", "Hammer swing start (s)")
   @runtimeProperty("ModSettings.description", "How long before landing a hammer starts its swing. Hammers swing slower than other weapons, so they start earlier to hit on arrival. Other weapons use the game's 0.3.")
@@ -177,24 +177,24 @@ public class BluntLeapSettings extends IScriptable {
   // ------------------------------------------------------- stronger leap
 
   @runtimeProperty("ModSettings.mod", "Blunt Leap")
-  @runtimeProperty("ModSettings.category", "Stronger leap")
+  @runtimeProperty("ModSettings.category", "Thunder Breaker (full charge)")
   @runtimeProperty("ModSettings.category.order", "4")
   @runtimeProperty("ModSettings.displayName", "Extra range (%)")
-  @runtimeProperty("ModSettings.description", "A fully charged leap reaches this much further than the leap range. The travel time keeps its cap, so longer leaps are faster.")
+  @runtimeProperty("ModSettings.description", "With Thunder Breaker, a fully charged leap reaches this much further than the leap range. The travel time keeps its cap, so longer leaps are faster.")
   @runtimeProperty("ModSettings.step", "5.0")
   @runtimeProperty("ModSettings.min", "0.0")
   @runtimeProperty("ModSettings.max", "100.0")
   public let extraRange: Float = 50.0;
 
   @runtimeProperty("ModSettings.mod", "Blunt Leap")
-  @runtimeProperty("ModSettings.category", "Stronger leap")
+  @runtimeProperty("ModSettings.category", "Thunder Breaker (full charge)")
   @runtimeProperty("ModSettings.category.order", "4")
   @runtimeProperty("ModSettings.displayName", "EMP on a crit")
   @runtimeProperty("ModSettings.description", "A fully charged leap that crits sets off an EMP burst at the enemy. It never hurts you.")
   public let emp: Bool = true;
 
   @runtimeProperty("ModSettings.mod", "Blunt Leap")
-  @runtimeProperty("ModSettings.category", "Stronger leap")
+  @runtimeProperty("ModSettings.category", "Thunder Breaker (full charge)")
   @runtimeProperty("ModSettings.category.order", "4")
   @runtimeProperty("ModSettings.displayName", "EMP radius (m)")
   @runtimeProperty("ModSettings.description", "How far the EMP burst reaches.")
@@ -204,7 +204,7 @@ public class BluntLeapSettings extends IScriptable {
   public let empRadius: Float = 3.0;
 
   @runtimeProperty("ModSettings.mod", "Blunt Leap")
-  @runtimeProperty("ModSettings.category", "Stronger leap")
+  @runtimeProperty("ModSettings.category", "Thunder Breaker (full charge)")
   @runtimeProperty("ModSettings.category.order", "4")
   @runtimeProperty("ModSettings.displayName", "EMP damage (% of the weapon's hit)")
   @runtimeProperty("ModSettings.description", "The burst's Electrical damage, as a share of the weapon's own damage per hit. It is not raised by the crit, the charge or the distance.")
@@ -214,7 +214,7 @@ public class BluntLeapSettings extends IScriptable {
   public let empDamage: Float = 100.0;
 
   @runtimeProperty("ModSettings.mod", "Blunt Leap")
-  @runtimeProperty("ModSettings.category", "Stronger leap")
+  @runtimeProperty("ModSettings.category", "Thunder Breaker (full charge)")
   @runtimeProperty("ModSettings.category.order", "4")
   @runtimeProperty("ModSettings.displayName", "Send flying: chance (%)")
   @runtimeProperty("ModSettings.description", "Chance that a fully charged leap sends the enemy flying. Bosses, MaxTac and very large enemies are never sent flying.")
@@ -224,7 +224,7 @@ public class BluntLeapSettings extends IScriptable {
   public let launchChance: Float = 80.0;
 
   @runtimeProperty("ModSettings.mod", "Blunt Leap")
-  @runtimeProperty("ModSettings.category", "Stronger leap")
+  @runtimeProperty("ModSettings.category", "Thunder Breaker (full charge)")
   @runtimeProperty("ModSettings.category.order", "4")
   @runtimeProperty("ModSettings.displayName", "Send flying: chance on heavy enemies (%)")
   @runtimeProperty("ModSettings.description", "The same chance against the game's heavy enemy types.")
@@ -234,7 +234,7 @@ public class BluntLeapSettings extends IScriptable {
   public let launchChanceHeavy: Float = 30.0;
 
   @runtimeProperty("ModSettings.mod", "Blunt Leap")
-  @runtimeProperty("ModSettings.category", "Stronger leap")
+  @runtimeProperty("ModSettings.category", "Thunder Breaker (full charge)")
   @runtimeProperty("ModSettings.category.order", "4")
   @runtimeProperty("ModSettings.displayName", "Send flying: force (%)")
   @runtimeProperty("ModSettings.description", "How hard the enemy is thrown. 20 keeps it believable; 100 matches the Gorilla Arms knockout punch, which throws enemies very far.")
@@ -244,21 +244,21 @@ public class BluntLeapSettings extends IScriptable {
   public let launchForce: Float = 20.0;
 
   @runtimeProperty("ModSettings.mod", "Blunt Leap")
-  @runtimeProperty("ModSettings.category", "Stronger leap")
+  @runtimeProperty("ModSettings.category", "Thunder Breaker (full charge)")
   @runtimeProperty("ModSettings.category.order", "4")
   @runtimeProperty("ModSettings.displayName", "Push follows the swing")
   @runtimeProperty("ModSettings.description", "On: the enemy is thrown the way the weapon swings (sideways, down or up). Off: straight away from you.")
   public let swingPush: Bool = true;
 
   @runtimeProperty("ModSettings.mod", "Blunt Leap")
-  @runtimeProperty("ModSettings.category", "Stronger leap")
+  @runtimeProperty("ModSettings.category", "Thunder Breaker (full charge)")
   @runtimeProperty("ModSettings.category.order", "4")
   @runtimeProperty("ModSettings.displayName", "Stagger when not sent flying")
   @runtimeProperty("ModSettings.description", "On: an enemy that is not sent flying is at least staggered, unless it resists staggers.")
   public let stagger: Bool = true;
 
   @runtimeProperty("ModSettings.mod", "Blunt Leap")
-  @runtimeProperty("ModSettings.category", "Stronger leap")
+  @runtimeProperty("ModSettings.category", "Thunder Breaker (full charge)")
   @runtimeProperty("ModSettings.category.order", "4")
   @runtimeProperty("ModSettings.displayName", "Hit stop (s)")
   @runtimeProperty("ModSettings.description", "A very short slow-motion beat when a fully charged leap lands. 0 turns it off.")

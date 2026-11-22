@@ -158,7 +158,9 @@ BluntLeap.EMP:
 # Both perks have their own icons (archive/pc/mod/BluntLeap.archive, built by
 # tools/pack_icons.sh).
 # The name and description keys are plain text keys (the perk screen passes
-# them to GetLocalizedText); the texts are in BluntLeap_Texts.reds.
+# them to GetLocalizedText); the texts are in BluntLeap_Texts.reds. The
+# descriptions here are the default variants; BluntLeapSystem switches to
+# another variant when a setting changes what the perk does.
 
 # The two perk icons: two parts of our own small atlas.
 UIIcon.BluntLeap_Leap:
@@ -179,14 +181,14 @@ NewPerks.BluntLeap_Leap_UI:
 
 NewPerks.BluntLeap_Stronger_UI:
   $type: NewPerkLevelUIData
-  floatValues: [ 50.0, 80.0 ]
+  floatValues: [ 50.0, 80.0, 30.0 ]
 
 NewPerks.BluntLeap_Leap:
   $type: NewPerk
   enumName: BluntLeap_Leap
   enumComment: Blunt Leap mod, leap attack for blunt weapons
   loc_name_key: BluntLeap-Perk-Leap-Name
-  loc_desc_key: BluntLeap-Perk-Leap-Desc
+  loc_desc_key: BluntLeap-Perk-Leap-Desc-NAB
   perkIcon: UIIcon.BluntLeap_Leap
   category: NewPerks.SimpleNewPerkCategory
   perkWeaponGroup: NewPerks.BluntsPerkWeaponGroup
@@ -206,7 +208,7 @@ NewPerks.BluntLeap_Stronger:
   enumName: BluntLeap_Stronger
   enumComment: Blunt Leap mod, stronger fully charged leap
   loc_name_key: BluntLeap-Perk-Stronger-Name
-  loc_desc_key: BluntLeap-Perk-Stronger-Desc
+  loc_desc_key: BluntLeap-Perk-Stronger-Desc-ES
   perkIcon: UIIcon.BluntLeap_Stronger
   category: NewPerks.SimpleNewPerkCategory
   perkWeaponGroup: NewPerks.BluntsPerkWeaponGroup
