@@ -5,7 +5,7 @@ Everything below is untested. The scripts compile against the game; nothing has 
 ## Before starting
 
 1. **Perk Addition Framework** (Nexus 22758) installed. Without it the mod still works, but with no perks: leap and stronger leap are simply granted.
-2. **Blunt Leap** installed: `r6/scripts/BluntLeap/` and `r6/tweaks/BluntLeap/`.
+2. **Blunt Leap** installed: `r6/scripts/BluntLeap/`, `r6/tweaks/BluntLeap/` and `archive/pc/mod/BluntLeap.archive`.
 3. In Mod Settings, Blunt Leap, General: turn **Write a log** on for this test. Lines start with `[Blunt Leap]` and go to the CET game log (`bin/x64/plugins/cyber_engine_tweaks/gamelog.log`, also shown in the CET console).
 4. Have at hand: a one-handed blunt weapon, a bat, a hammer, a stun baton, Gorilla Arms if you use them, and a save with spare perk points, Body 9 and Reflexes 9.
 5. **Make a manual save first.** Perk IDs added by the framework are a known risk (test 6).
@@ -20,6 +20,7 @@ If the game stops at launch with a script error, send me `r6/logs/redscript_rCUR
 | 1.2 | Open Mod Settings | "Blunt Leap" with four groups (General, Leap, Charge, Stronger leap) and 28 settings |
 | 1.3 | Open the Body perk page | Two new nodes on the row of Breakthrough: one right beside it (Blunt Leap), one further left (Stronger Leap). Two short lines join the three. A small Dash marker sits above Blunt Leap |
 | 1.4 | Hover both nodes | Name, description with numbers, no missing-text keys |
+| 1.5 | Look at the Blunt Leap node | It shows the bat icon, sharp and the same size as its neighbours. (Stronger Leap still shows a placeholder icon) |
 
 ## 2. The perks (unlock rule "Perks, the first needs Dash", the default)
 

@@ -14,7 +14,7 @@ Work in progress. **All three build steps are written and compile against the ga
 |---|---|---|
 | 1 | Leap with every blunt weapon, leap range, hammer timing, distance damage bonus, charge for blunt weapons with the native charge bar, "Always charged" mode | written, compiles, untested in game |
 | 2 | Stronger leap on a full charge: longer and faster leap, EMP on a crit, send the enemy flying or stagger them, hit stop, full-charge sound, flash and rumble | written, compiles, untested in game |
-| 3 | The two perks in the Body tree, four unlock rules, the Dash requirement, automatic refunds, lines on the perk screen | written, compiles, untested in game; perk icons are placeholders |
+| 3 | The two perks in the Body tree, four unlock rules, the Dash requirement, automatic refunds, lines on the perk screen | written, compiles, untested in game; the Stronger leap icon is a placeholder |
 
 The full design is in [SPEC.md](SPEC.md). The game facts behind it are in [RESEARCH.md](RESEARCH.md).
 
@@ -27,12 +27,13 @@ The full design is in [SPEC.md](SPEC.md). The game facts behind it are in [RESEA
 
 ## Install (manual)
 
-Copy the `r6` folder into the game folder. That adds two folders and changes no existing file:
+Copy the `r6` and `archive` folders into the game folder. That adds two folders and one file, and changes no existing file:
 
 - `r6/scripts/BluntLeap/`
 - `r6/tweaks/BluntLeap/`
+- `archive/pc/mod/BluntLeap.archive` (the perk icon)
 
-To remove the mod: refund the two perks first (or switch the unlock rule to one without perks and load the save once), then delete those two folders.
+To remove the mod: refund the two perks first (or switch the unlock rule to one without perks and load the save once), then delete those two folders and the archive.
 
 ## How it works
 
@@ -50,6 +51,8 @@ To remove the mod: refund the two perks first (or switch the unlock rule to one 
 | `r6/tweaks/BluntLeap/` | TweakXL records: the leap ability, the distance bonus, the charge pool, the hit effector, the EMP, the two perks |
 | `TESTING.md` | the list for the first in-game test |
 | `art/` | the perk icon (PNG at the game size, SVG, and a preview) |
+| `archive/pc/mod/BluntLeap.archive` | the perk icon packed for the game |
+| `tools/pack_icons.sh` | builds that archive from `art/blunt-leap-icon.png` |
 | `tools/compile_check.sh` | compiles the scripts against a game install in a scratch folder |
 | `tools/make_icon.py` | builds the icon from the game icon it is based on |
 

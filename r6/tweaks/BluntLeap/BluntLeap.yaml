@@ -155,9 +155,17 @@ BluntLeap.EMP:
 # read who owns them and apply the packages above.
 # The Dash requirement is checked in script, not listed here: the perk screen
 # cannot handle a required perk from another page.
-# Icons are placeholders from the game until our own are packed.
+# Blunt leap has its own icon (archive/pc/mod/BluntLeap.archive, built by
+# tools/pack_icons.sh). Stronger leap uses a placeholder from the game until
+# its icon is made.
 # The name and description keys are plain text keys (the perk screen passes
 # them to GetLocalizedText); the texts are in BluntLeap_Texts.reds.
+
+# The Blunt leap icon: one part of our own small atlas.
+UIIcon.BluntLeap_Leap:
+  $type: UIIcon
+  atlasResourcePath: bluntleap\gui\icons\blunt_leap_icons.inkatlas
+  atlasPartName: blunt_leap
 
 # The numbers shown in the descriptions ({float_0}, {float_1}). The scripts
 # rewrite them from the settings.
@@ -175,7 +183,7 @@ NewPerks.BluntLeap_Leap:
   enumComment: Blunt Leap mod, leap attack for blunt weapons
   loc_name_key: BluntLeap-Perk-Leap-Name
   loc_desc_key: BluntLeap-Perk-Leap-Desc
-  perkIcon: UIIcon.Kenjutsu_Area_09_Perk_2
+  perkIcon: UIIcon.BluntLeap_Leap
   category: NewPerks.SimpleNewPerkCategory
   perkWeaponGroup: NewPerks.BluntsPerkWeaponGroup
   slot: NewPerks.Inbetween_Right_2
