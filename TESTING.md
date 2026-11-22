@@ -131,7 +131,7 @@ Setting: Mod Settings, Battering Ram, Charge, "Charge speed under Sandevistan" (
 | 9.5 | Full, Sandevistan on. A stun baton, a katana | Their own charges are unchanged (they still slow down) |
 | 9.6 | Full, Sandevistan on. Charge to full and leap | Sound, flash and Thunder Breaker work as without Sandevistan |
 
-## 10. Gorilla Arms charge (2026-11-23)
+## 10. Gorilla Arms charge (2026-11-23; passed the same day)
 
 Thunder Breaker owned. With "Write a log" on, the log shows "Gorilla Arms charge started, full in ... s" and "Gorilla Arms fully charged".
 

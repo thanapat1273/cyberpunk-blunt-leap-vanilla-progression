@@ -8,7 +8,7 @@ The goal is a mod that feels like part of the game: two new perks in the Body tr
 
 ## Status
 
-Version 1.1.0. Played and tested in game (2026-11-22 and 23): the leap with blunt weapons, the charge, both perks and the Dash requirement, the stronger leap (throw, stagger, EMP), the perk screen, the perk texts and the perk-card videos. The test list is [TESTING.md](TESTING.md).
+Version 1.2.0. Played and tested in game (2026-11-22 and 23): the leap with blunt weapons, the charge, both perks and the Dash requirement, the stronger leap (throw, stagger, EMP), the perk screen, the perk texts and the perk-card videos. The test list is [TESTING.md](TESTING.md).
 
 | Part | Contents |
 |---|---|
@@ -16,13 +16,13 @@ Version 1.1.0. Played and tested in game (2026-11-22 and 23): the leap with blun
 | Thunder Breaker | Stronger leap on a full charge: longer and faster leap, EMP on a crit, send the enemy flying or stagger them, hit stop, full-charge sound, flash and rumble |
 | Perks | Two perks in the Body tree with the game's look, icons, texts and videos; four unlock rules; the Dash requirement with a Dash box on the perk screen; automatic refunds |
 
-Not confirmed in game yet: the fist leap fixes and the per-type "Swing start" settings and the 3 m "Minimum leap reach" (fist and Gorilla Arms leaps missed often).
+Not confirmed in game yet: the "Partial" value of "Charge speed under Sandevistan" since its fix in 1.2.0.
 
 The full design is in [SPEC.md](SPEC.md). The game facts behind it are in [RESEARCH.md](RESEARCH.md).
 
 ## Changes
 
-**Next** (not released yet)
+**1.2.0** (2026-11-23)
 - Gorilla Arms now charge by holding a strong attack (setting "Charge time: Gorilla Arms", 0.75 s), with the full-charge sound and rumble, so their leaps can be Thunder Breaker leaps. Before, they never charged: their own charge belongs to the relic perk, which this mod does not touch. No charge bar for Gorilla Arms.
 - Fixed: "Charge speed under Sandevistan: Partial" could be slower than Vanilla with milder Sandevistans. It is now halfway between Vanilla and Full.
 
