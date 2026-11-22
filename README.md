@@ -8,7 +8,7 @@ The goal is a mod that feels like part of the game: two new perks in the Body tr
 
 ## Status
 
-Version 1.0.0. Played and tested in game (2026-11-22): the leap with blunt weapons, the charge, both perks and the Dash requirement, the stronger leap (throw, stagger, EMP), the perk screen, the perk texts and the perk-card videos. The test list is [TESTING.md](TESTING.md).
+Version 1.1.0. Played and tested in game (2026-11-22 and 23): the leap with blunt weapons, the charge, both perks and the Dash requirement, the stronger leap (throw, stagger, EMP), the perk screen, the perk texts and the perk-card videos. The test list is [TESTING.md](TESTING.md).
 
 | Part | Contents |
 |---|---|
@@ -19,6 +19,15 @@ Version 1.0.0. Played and tested in game (2026-11-22): the leap with blunt weapo
 Not confirmed in game yet: the fist leap fixes and the per-type "Swing start" settings and the 3 m "Minimum leap reach" (fist and Gorilla Arms leaps missed often).
 
 The full design is in [SPEC.md](SPEC.md). The game facts behind it are in [RESEARCH.md](RESEARCH.md).
+
+## Changes
+
+**1.1.0** (2026-11-23)
+- Fixed: fist and Gorilla Arms leap attacks landed their punch before reaching the enemy. Their swing now starts 0.21 s before landing (the game's 0.3 s suits blades).
+- Leap attacks now reach at least 3 m with every blunt weapon (fists and Gorilla Arms reach 1.5 m in the game, one-handed weapons and hammers 2 m, two-handed 2.5 m). Only the attack that ends a leap; normal attacks are unchanged.
+- New Mod Settings group "Leap swing and reach": a swing start and a reach bonus for each blunt type (fists, Gorilla Arms, one-handed including stun batons, two-handed, hammers), and the minimum leap reach. "Hammer swing start" moved there; a saved value carries over.
+
+**1.0.0** (2026-11-22): first release.
 
 ## Requirements
 
