@@ -6,7 +6,7 @@ Everything below is untested. The scripts compile against the game; nothing has 
 
 1. **Perk Addition Framework** (Nexus 22758): installed 2026-11-22, version 1.0.1.
 2. **Blunt Leap**: installed 2026-11-22 (`r6/scripts/BluntLeap/`, `r6/tweaks/BluntLeap/`, `archive/pc/mod/BluntLeap.archive`).
-3. In Mod Settings, Blunt Leap, General: turn **Write a log** on for this test. Lines start with `[Blunt Leap]` and go to the CET game log (`bin/x64/plugins/cyber_engine_tweaks/gamelog.log`, also shown in the CET console).
+3. In Mod Settings, Battering Ram, General: turn **Write a log** on for this test. Lines start with `[Blunt Leap]` and go to the CET game log (`bin/x64/plugins/cyber_engine_tweaks/gamelog.log`, also shown in the CET console).
 4. Have at hand: a one-handed blunt weapon, a bat, a hammer, a stun baton, Gorilla Arms if you use them, and a save with spare perk points, Body 9 and Reflexes 9.
 5. **Make a manual save first.** Perk IDs added by the framework are a known risk (test 6).
 
@@ -17,7 +17,7 @@ If the game stops at launch with a script error, send me `r6/logs/redscript_rCUR
 | # | Do | Expect |
 |---|---|---|
 | 1.1 | Start the game, load a save | No error pop-up |
-| 1.2 | Open Mod Settings | "Blunt Leap" with four groups (General, Leap, Charge, Stronger leap) and 29 settings |
+| 1.2 | Open Mod Settings | "Battering Ram" with four groups (General, Leap, Charge, Stronger leap) and 29 settings |
 | 1.3 | Open the Body perk page | Two new nodes on the row of Breakthrough: one right beside it (Blunt Leap), one further left (Stronger Leap). Two short lines join the three. A small Dash marker sits above Blunt Leap |
 | 1.4 | Hover both nodes | Name, description with numbers, no missing-text keys |
 | 1.5 | Look at both new nodes | Blunt Leap shows the bat icon, Stronger Leap the charged fist; both sharp and the same size as their neighbours |
@@ -117,7 +117,7 @@ This build fixes the four findings from the first play test and adds the round 3
 
 ## 9. Charge speed under Sandevistan (2026-11-22)
 
-Setting: Mod Settings, Blunt Leap, Charge, "Charge speed under Sandevistan" (default Full). Use a bat; its charge takes about 1 s without Sandevistan. With "Write a log" on, each hold writes a "Charge (...)" line with what the mod sees (setting, Sandevistan on or off, the slow-down), and "rate set to" when it changes the speed. After testing, send me the `[Blunt Leap] Charge` lines from `bin/x64/plugins/cyber_engine_tweaks/gamelog.log`.
+Setting: Mod Settings, Battering Ram, Charge, "Charge speed under Sandevistan" (default Full). Use a bat; its charge takes about 1 s without Sandevistan. With "Write a log" on, each hold writes a "Charge (...)" line with what the mod sees (setting, Sandevistan on or off, the slow-down), and "rate set to" when it changes the speed. After testing, send me the `[Blunt Leap] Charge` lines from `bin/x64/plugins/cyber_engine_tweaks/gamelog.log`.
 
 | # | Do | Expect |
 |---|---|---|

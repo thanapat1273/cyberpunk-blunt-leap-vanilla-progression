@@ -60,7 +60,7 @@ To remove the mod: refund the two perks first (or switch the unlock rule to one 
 | `tools/make_icon.py` | builds the Blunt leap icon from the game icon it is based on |
 | `tools/make_stronger_icon.py` | builds the Stronger leap icon from the two game icons it is based on |
 | `tools/make_videos.py` | cuts the in-game recordings and encodes them into the two perk-card videos |
-| `tools/make_release.sh` | builds the zip for Nexus Mods (`dist/BluntLeap-<version>.zip`) from the last commit |
+| `tools/make_release.sh` | builds the zip for Nexus Mods (`dist/BatteringRam-<version>.zip`) from the last commit |
 | `tools/render_perk_box.py` | renders a perk box (and its wires) at high resolution from the game's own UI textures and style values |
 
 ## Credits

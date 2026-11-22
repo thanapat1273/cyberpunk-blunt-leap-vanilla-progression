@@ -6,7 +6,7 @@
 #   tools/make_release.sh <version>      e.g. tools/make_release.sh 1.0.0
 #
 # The files come from the last commit (git archive), not from the working
-# folder, so the zip matches what is pushed. It is written to dist/ (not kept
+# folder, so the zip matches what is pushed. It is written to dist/ as BatteringRam-<version>.zip, the Nexus page name (not kept
 # in the repository).
 #
 # Contents:
@@ -27,7 +27,7 @@ if [ -n "$(git status --porcelain -- archive r6)" ]; then
   exit 1
 fi
 mkdir -p dist
-OUT="dist/BluntLeap-$VERSION.zip"
+OUT="dist/BatteringRam-$VERSION.zip"
 git archive --format=zip -9 -o "$OUT" HEAD archive/pc/mod/BluntLeap.archive r6/scripts/BluntLeap r6/tweaks/BluntLeap
 echo "written: $OUT ($(du -k "$OUT" | cut -f1) KB) from commit $(git rev-parse --short HEAD)"
 py -3.10 -I - "$OUT" <<'PY'
