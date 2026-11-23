@@ -317,6 +317,7 @@ protected func OnDied() -> Void {
   if IsDefined(npc) {
     system = BluntLeapSystem.Get(this.GetGame());
     if IsDefined(system) {
+      system.CheckDeadState(npc);
       system.ClearThrownBody(npc, (system.DiedByImpact(npc.GetEntityID()) ? "died from its impact (wall or ground)" : "died") + (late ? (knockedOut ? " after going down (it was knocked out)" : " after going down (it was not knocked out)") : "") + (IsDefined(npc.GetKiller() as PlayerPuppet) ? ", kill credited to V" : ", kill NOT credited to V"), true);
     };
   };
@@ -341,44 +342,6 @@ protected cb func OnStartRagdollDamageEvent(inEvent: ref<StartRagdollDamageEvent
     system.NoteRagdollImpact(this.GetEntityID());
   };
   return wrappedMethod(inEvent);
-}
-
-// The damage of a ragdoll impact (a wall, the ground) is set here. If it
-// would kill an NPC this mod threw, it is cancelled and V's kill is dealt a
-// moment later instead (BluntLeapSystem.KillInsteadOfImpact): a kill by the
-// game's ragdoll impact leaves a body with no loot and no pick-up. The
-// "should die" mark the game sets for hard impacts is taken off too.
-@wrapMethod(DamageSystem)
-private func ProcessRagdollHit(hitEvent: ref<gameHitEvent>) -> Void {
-  let npc: ref<NPCPuppet>;
-  let system: ref<BluntLeapSystem>;
-  let health: Float;
-  let damage: Float;
-  wrappedMethod(hitEvent);
-  if !IsDefined(hitEvent as gameRagdollHitEvent) {
-    return;
-  };
-  npc = hitEvent.target as NPCPuppet;
-  if !IsDefined(npc) || npc.IsDead() {
-    return;
-  };
-  system = BluntLeapSystem.Get(npc.GetGame());
-  if !IsDefined(system) || !system.IsThrown(npc.GetEntityID()) {
-    return;
-  };
-  health = GameInstance.GetStatPoolsSystem(npc.GetGame()).GetStatPoolValue(Cast<StatsObjectID>(npc.GetEntityID()), gamedataStatPoolType.Health, false);
-  damage = hitEvent.attackComputed.GetTotalAttackValue(gamedataStatPoolType.Health);
-  if damage < health && !npc.IsAboutToDie() {
-    return;
-  };
-  hitEvent.attackComputed.SetAttackValue(0.0);
-  npc.BluntLeapCancelDeathMark();
-  system.KillInsteadOfImpact(npc, damage, health);
-}
-
-@addMethod(NPCPuppet)
-public func BluntLeapCancelDeathMark() -> Void {
-  this.m_shouldDie = false;
 }
 
 // V is the instigator of the ragdoll this mod starts (see Launch). Read by

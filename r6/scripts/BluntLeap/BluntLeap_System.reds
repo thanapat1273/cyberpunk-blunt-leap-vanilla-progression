@@ -61,15 +61,14 @@ public class BluntLeapBodyCheckCallback extends DelayCallback {
   }
 }
 
-// A thrown NPC's ragdoll impact would have killed it: V's kill is dealt a
-// moment later instead (see BluntLeapSystem.KillInsteadOfImpact).
-public class BluntLeapImpactKillCallback extends DelayCallback {
+// One second after an NPC died: is its AI state Dead? (BluntLeapSystem.EnsureDeadState)
+public class BluntLeapDeadStateCallback extends DelayCallback {
   public let system: wref<BluntLeapSystem>;
   public let npc: wref<NPCPuppet>;
 
   public func Call() -> Void {
     if IsDefined(this.system) {
-      this.system.FinishImpactKill(this.npc);
+      this.system.EnsureDeadState(this.npc);
     };
   }
 }
@@ -1308,35 +1307,56 @@ public class BluntLeapSystem extends ScriptableSystem {
     };
   }
 
-  public final func IsThrown(id: EntityID) -> Bool {
-    return ArrayContains(this.m_thrownIds, id);
-  }
-
-  // A thrown NPC's ragdoll impact would kill it (DamageSystem.ProcessRagdollHit,
-  // wrapped in BluntLeap_Impact.reds). A kill by the game's ragdoll impact,
-  // like a kill by a car, leaves a body with no interaction at all: no loot,
-  // no pick-up (a known game bug; seen in game 2026-11-24, every such body).
-  // The impact's damage has been cancelled; 0.05 s later the NPC's health is
-  // taken by V, the way bleeding kills, so it dies the ordinary way.
-  public final func KillInsteadOfImpact(npc: ref<NPCPuppet>, damage: Float, health: Float) -> Void {
-    let callback: ref<BluntLeapImpactKillCallback> = new BluntLeapImpactKillCallback();
+  // Any NPC died (ScriptedPuppet.OnDied): its AI state is checked a second
+  // later (EnsureDeadState).
+  public final func CheckDeadState(npc: ref<NPCPuppet>) -> Void {
+    let callback: ref<BluntLeapDeadStateCallback> = new BluntLeapDeadStateCallback();
     callback.system = this;
     callback.npc = npc;
-    GameInstance.GetDelaySystem(npc.GetGame()).DelayCallback(callback, 0.05, false);
-    this.Log("Thrown NPC #" + BluntLeapSystem.ShortId(npc.GetEntityID()) + ": its impact would kill it (damage " + FloatToStringPrec(damage, 1) + ", health " + FloatToStringPrec(health, 1) + "); V's kill instead");
+    GameInstance.GetDelaySystem(npc.GetGame()).DelayCallback(callback, 1.0, false);
   }
 
-  public final func FinishImpactKill(npc: wref<NPCPuppet>) -> Void {
-    let pools: ref<StatPoolsSystem>;
-    let id: StatsObjectID;
-    let health: Float;
-    if !IsDefined(npc) || npc.IsDead() {
+  // The body interactions of an NPC (loot, pick up / carry; also the
+  // takedown layers) have a condition, NPCIncapacitatedPrereq, in two of the
+  // game's interaction files (its only uses: no other file of the base game
+  // or Phantom Liberty, no TweakDB entry and no script names it; scanned
+  // 2026-11-24). It holds if the NPC's AI high-level state (the PuppetState
+  // blackboard) is Unconscious or Dead, or the NPC is Defeated or hacked by
+  // a nanowire. An NPC killed by a ragdoll impact (a wall or a fall after a
+  // throw, a car: a known game bug) can die without its AI state ever
+  // becoming Dead, and its body then offers no interaction at all, no loot
+  // and no pick-up, although it is dead with loot inside (seen on every
+  // such body in the wall-kill test, 2026-11-24). So a second after any NPC
+  // dies, if its state is still neither Dead nor Unconscious, it is set to
+  // Dead on that blackboard, where the condition reads it. Ordinary deaths
+  // are Dead by then and are not touched. For all NPCs, as the game bug is
+  // not limited to the ones this mod throws.
+  //
+  // (The Nexus mod "Impact Kill Looting Fix" fixes the same bug by changing
+  // that condition to PuppetIncapacitatedPrereq in the two files. Wrapping
+  // NPCIncapacitatedPrereq.IsFulfilled was tried first: it overrides a
+  // native function and keeps its native name, so redscript cannot wrap or
+  // replace it.)
+  public final func EnsureDeadState(npc: wref<NPCPuppet>) -> Void {
+    let state: gamedataNPCHighLevelState;
+    let board: ref<IBlackboard>;
+    if !IsDefined(npc) || !npc.IsDead() {
       return;
     };
-    pools = GameInstance.GetStatPoolsSystem(npc.GetGame());
-    id = Cast<StatsObjectID>(npc.GetEntityID());
-    health = pools.GetStatPoolValue(id, gamedataStatPoolType.Health, false);
-    pools.RequestChangingStatPoolValue(id, gamedataStatPoolType.Health, -(health + 1.0), GetPlayer(npc.GetGame()), false, false);
+    state = npc.GetHighLevelStateFromBlackboard();
+    if Equals(state, gamedataNPCHighLevelState.Dead) || Equals(state, gamedataNPCHighLevelState.Unconscious) {
+      return;
+    };
+    board = npc.GetPuppetStateBlackboard();
+    if !IsDefined(board) {
+      return;
+    };
+    board.SetInt(GetAllBlackboardDefs().PuppetState.HighLevel, EnumInt(gamedataNPCHighLevelState.Dead));
+    this.Log("NPC #" + BluntLeapSystem.ShortId(npc.GetEntityID()) + (this.IsThrownNpc(npc.GetEntityID()) ? " (thrown)" : "") + " died but its AI state was " + EnumValueToString("gamedataNPCHighLevelState", Cast<Int64>(EnumInt(state))) + " a second later: set to Dead, so its body can be looted and picked up");
+  }
+
+  public final func IsThrownNpc(id: EntityID) -> Bool {
+    return ArrayContains(this.m_thrownIds, id);
   }
 
   // A thrown NPC's ragdoll hit something hard (NPCPuppet.OnStartRagdollDamageEvent).
