@@ -23,6 +23,9 @@ The full design is in [SPEC.md](SPEC.md). The game facts behind it are in [RESEA
 ## Changes
 
 **Next** (not released yet)
+- Mod Settings has a new, clearer layout: General, then Features (all the on/off switches), then a group each for the leap, the charge, Thunder Breaker, sending flying and the EMP, then per-weapon fine tuning and troubleshooting. Options that only matter while a switch is on are hidden while it is off. "Always charged" is now called "Leap only when fully charged". Saved values carry over.
+- New switch "Send flying": Off turns Thunder Breaker's throws off (the perk card says so too).
+- New option "Non-lethal throws" (Off by default): an enemy you send flying that hits a wall or the ground hard is knocked out instead of killed.
 - The small push that replaces a stagger now goes only to enemies at an idle spot (leaning on a wall, sitting, smoking, chatting, at a terminal), where the game never shows a stagger; it was given to every enemy not in combat yet. Unalerted enemies that are only standing or walking get the stagger again. The setting is now called "Small push instead of stagger, at an idle spot" and keeps its value.
 
 **1.2.1** (2026-11-24)

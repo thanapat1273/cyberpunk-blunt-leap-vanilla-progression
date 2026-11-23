@@ -77,6 +77,7 @@ public class BluntLeapEnglish extends ModLocalizationPackage {
     let bonus: Int32;
     let emp: Int32;
     let stagger: Int32;
+    let throws: Int32;
     let text: String;
     let second: String;
 
@@ -118,24 +119,34 @@ public class BluntLeapEnglish extends ModLocalizationPackage {
       charged += 1;
     };
 
-    // Thunder Breaker: EMP on or off, stagger on or off.
-    // Key: BluntLeap-Perk-Stronger-Desc-<E|0><S|0>.
+    // Thunder Breaker: EMP on or off, stagger on or off, sending flying on
+    // or off. Key: BluntLeap-Perk-Stronger-Desc-<E|0><S|0><T|0>.
     emp = 0;
     while emp < 2 {
       stagger = 0;
       while stagger < 2 {
-        text = "Holding a Strong Attack with Blunt Weapons now charges it up.\n\n";
-        text += "A " + this.Hl("fully charged Leap Attack") + " reaches " + this.Hl("+{float_0}% farther") + " and lands faster. ";
-        text += "Its hit can " + this.Hl("send the enemy flying") + " ({float_1}% chance, {float_2}% against heavy enemies)";
-        if stagger == 1 {
-          text += " or stagger them otherwise.";
-        } else {
-          text += ".";
+        throws = 0;
+        while throws < 2 {
+          text = "Holding a Strong Attack with Blunt Weapons now charges it up.\n\n";
+          text += "A " + this.Hl("fully charged Leap Attack") + " reaches " + this.Hl("+{float_0}% farther") + " and lands faster.";
+          if throws == 1 {
+            text += " Its hit can " + this.Hl("send the enemy flying") + " ({float_1}% chance, {float_2}% against heavy enemies)";
+            if stagger == 1 {
+              text += " or stagger them otherwise.";
+            } else {
+              text += ".";
+            };
+          } else {
+            if stagger == 1 {
+              text += " Its hit " + this.Hl("staggers") + " the enemy.";
+            };
+          };
+          if emp == 1 {
+            text += "\n\nCrit Hits also release an " + this.Hl("EMP blast") + " around the target.";
+          };
+          this.Text(BluntLeapEnglish.StrongerKey(emp == 1, stagger == 1, throws == 1), text);
+          throws += 1;
         };
-        if emp == 1 {
-          text += "\n\nCrit Hits also release an " + this.Hl("EMP blast") + " around the target.";
-        };
-        this.Text(BluntLeapEnglish.StrongerKey(emp == 1, stagger == 1), text);
         stagger += 1;
       };
       emp += 1;
@@ -154,7 +165,7 @@ public class BluntLeapEnglish extends ModLocalizationPackage {
     return "BluntLeap-Perk-Leap-Desc-" + (charged ? "C" : "N") + (air ? "A" : "G") + (bonus ? "B" : "0");
   }
 
-  public final static func StrongerKey(emp: Bool, stagger: Bool) -> String {
-    return "BluntLeap-Perk-Stronger-Desc-" + (emp ? "E" : "0") + (stagger ? "S" : "0");
+  public final static func StrongerKey(emp: Bool, stagger: Bool, throws: Bool) -> String {
+    return "BluntLeap-Perk-Stronger-Desc-" + (emp ? "E" : "0") + (stagger ? "S" : "0") + (throws ? "T" : "0");
   }
 }

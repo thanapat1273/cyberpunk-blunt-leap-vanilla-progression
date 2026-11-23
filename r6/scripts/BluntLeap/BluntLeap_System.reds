@@ -179,6 +179,8 @@ public class BluntLeapSystem extends ScriptableSystem {
   // NPCs this mod sent flying (newest last, at most 64), so their bodies can
   // be made lootable again when they die (ClearThrownBody).
   private let m_thrownIds: array<EntityID>;
+  // When each was last thrown (sim time), same index.
+  private let m_thrownTimes: array<Float>;
   // Thrown NPCs whose ragdoll hit something hard (a wall, the ground) and
   // when (sim time), newest last, at most 16: a death right after one is a
   // death from that impact (for the log).
@@ -252,6 +254,7 @@ public class BluntLeapSystem extends ScriptableSystem {
     this.m_reachMod = null;
     this.StopGorillaCharge();
     ArrayClear(this.m_thrownIds);
+    ArrayClear(this.m_thrownTimes);
     // m_settlePending is left as it is: the crosshair may have appeared and
     // requested a pool before this runs, and every new request sets it.
     this.m_holding = false;
@@ -468,7 +471,7 @@ public class BluntLeapSystem extends ScriptableSystem {
   private final func UpdatePerkTexts() -> Void {
     let settings: ref<BluntLeapSettings> = this.Settings();
     let leapDesc: String = BluntLeapEnglish.LeapKey(settings.alwaysCharged, settings.airLeap, settings.distanceBonus > 0.0);
-    let strongerDesc: String = BluntLeapEnglish.StrongerKey(settings.emp, settings.stagger);
+    let strongerDesc: String = BluntLeapEnglish.StrongerKey(settings.emp, settings.stagger, settings.sendFlying);
     let leapFloats: String = FloatToStringPrec(settings.distanceBonus, 2);
     let strongerFloats: String = FloatToStringPrec(settings.extraRange, 2) + "/" + FloatToStringPrec(settings.launchChance, 2) + "/" + FloatToStringPrec(settings.launchChanceHeavy, 2);
 
@@ -1200,13 +1203,23 @@ public class BluntLeapSystem extends ScriptableSystem {
   // own check is run again 2.5 s after they go down and after they die.
 
   public final func NoteThrown(id: EntityID) -> Void {
-    if ArrayContains(this.m_thrownIds, id) {
+    let i: Int32 = ArrayFindFirst(this.m_thrownIds, id);
+    if i >= 0 {
+      this.m_thrownTimes[i] = this.Now();
       return;
     };
     if ArraySize(this.m_thrownIds) >= 64 {
       ArrayErase(this.m_thrownIds, 0);
+      ArrayErase(this.m_thrownTimes, 0);
     };
     ArrayPush(this.m_thrownIds, id);
+    ArrayPush(this.m_thrownTimes, this.Now());
+  }
+
+  // True if this mod threw the NPC in the last 'seconds' seconds.
+  public final func ThrownWithin(id: EntityID, seconds: Float) -> Bool {
+    let i: Int32 = ArrayFindFirst(this.m_thrownIds, id);
+    return i >= 0 && this.Now() - this.m_thrownTimes[i] <= seconds;
   }
 
   // A thrown NPC is down (reason, for the log): take every stack of the

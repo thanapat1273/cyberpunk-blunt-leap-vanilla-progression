@@ -99,6 +99,10 @@ public abstract class BluntLeapImpact {
       chance = heavy ? settings.launchChanceHeavy : settings.launchChance;
       force = settings.launchForce;
     };
+    if !settings.sendFlying {
+      // "Send flying" is off: no throws (a stagger or small push as below).
+      chance = 0.0;
+    };
     chance = system.TestHookThrowChance(chance);
     force = system.TestHookThrowForce(force);
     if !exempt && RandRangeF(0.0, 100.0) < chance {
@@ -340,6 +344,42 @@ protected cb func OnStartRagdollDamageEvent(inEvent: ref<StartRagdollDamageEvent
     system.NoteRagdollImpact(this.GetEntityID());
   };
   return wrappedMethod(inEvent);
+}
+
+// Non-lethal throws (setting, off by default). The game works out a ragdoll
+// impact's damage here (a wall, the ground). A hard one (11 m/s or more, or
+// a high fall) gets the NPC's full health and marks it to die
+// (MarkForDeath), and an NPC marked to die is killed when its health runs
+// out, even after non-lethal hits. Otherwise the game knocks out an NPC
+// whose damage history has a non-lethal hit (NPCPuppet.OnPotentialDeath).
+// So, with the setting on, for an NPC this mod threw in the last 10 s, the
+// impact is made non-lethal and the mark this impact set is taken off: the
+// game then knocks it out (unconscious) instead of killing it.
+@wrapMethod(DamageSystem)
+private func ProcessRagdollHit(hitEvent: ref<gameHitEvent>) -> Void {
+  let npc: ref<NPCPuppet> = hitEvent.target as NPCPuppet;
+  let system: ref<BluntLeapSystem>;
+  let markedBefore: Bool;
+  if !IsDefined(npc) || !IsDefined(hitEvent as gameRagdollHitEvent) {
+    wrappedMethod(hitEvent);
+    return;
+  };
+  markedBefore = npc.IsAboutToDie();
+  wrappedMethod(hitEvent);
+  system = BluntLeapSystem.Get(npc.GetGame());
+  if !IsDefined(system) || !system.Settings().nonLethalThrows || npc.IsDead() || !system.ThrownWithin(npc.GetEntityID(), 10.0) {
+    return;
+  };
+  hitEvent.attackData.AddFlag(hitFlag.Nonlethal, n"BluntLeap");
+  if !markedBefore && npc.IsAboutToDie() {
+    npc.BluntLeapCancelDeathMark();
+    system.Log("Thrown NPC #" + BluntLeapSystem.ShortId(npc.GetEntityID()) + ": hard impact made non-lethal (knocked out, not killed)");
+  };
+}
+
+@addMethod(NPCPuppet)
+public func BluntLeapCancelDeathMark() -> Void {
+  this.m_shouldDie = false;
 }
 
 // V is the instigator of the ragdoll this mod starts (see Launch). Read by

@@ -86,6 +86,9 @@ With Stronger Leap owned, or "Always charged" on, draw the weapon again first.
 | 5.9 | A crit on a fully charged leap into 2 or 3 enemies close together | The enemies near the target that the swing did not hit are staggered by the EMP (unless they resist staggers or are Berserk) |
 | 5.10 | Fully charged first strike on an unalerted enemy, several reloads | Either a throw (log "sent flying (unalerted)") or a small push (log "small push instead of a stagger (unalerted)"), never nothing. Chances and forces: the "unalerted" settings in Thunder Breaker |
 | 5.11 | A stagger roll on an enemy at an idle spot (leaning, sitting, smoking, chatting) and on an unalerted enemy just standing or walking | At the spot: a small push (log "small push instead of a stagger (at an idle spot, unalerted)"). Standing or walking: a stagger shows (log "stagger (unalerted)") |
+| 5.12 | Mod Settings page | 9 groups in order: General, Features, Battering Ram: Leap, Charge, Thunder Breaker, Thunder Breaker: Send flying, Thunder Breaker: EMP, Advanced: swing and reach per weapon, Troubleshooting. Turning a switch off hides its options at once (Charge bar: bar flash; Send flying: its six options; EMP on a crit: radius and damage; Stagger when not sent flying: small push). Your earlier values are kept |
+| 5.13 | Send flying off, fully charged leaps | No throws; staggers (or the small push at an idle spot). Thunder Breaker's perk card no longer mentions sending flying |
+| 5.14 | Non-lethal throws on, throw enemies hard at walls (the test add-on's wall-kill mode helps) | They are knocked out, not killed (log: "hard impact made non-lethal"); bodies can be looted and picked up |
 
 ## 6. Saving
 

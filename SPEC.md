@@ -55,45 +55,36 @@ One setting: **"Always charged" mode**, **off by default**. Off: any heavy attac
 
 ## 5. Settings and defaults (all in Mod Settings)
 
-**Blunt leap**
+Layout since 2026-11-24 (D76): 46 options in 9 groups, in this order. An option marked "shown while X" is hidden while the switch X is off (`ModSettings.dependency`). Variable names never change, so saved values carry over.
+
+**1. General**: Enabled (On); Unlock rule (Perks; Battering Ram needs Dash); Dash box on the perk screen (On).
+
+**2. Features** (the on/off switches)
 
 | Setting | Default |
 |---|---|
-| Leap range | 15 m |
-| Mid-air leap | On |
-| Distance damage bonus | up to +50% at 20 m |
-| Swing start before arrival, per type (D45, D47) | fists 0.21 s, Gorilla Arms 0.21 s, one-handed 0.3 s, two-handed 0.3 s, hammer 0.5 s |
-| Reach of the leap's attack (D46 to D50) | the larger of: 3.0 m (minimum leap reach; 2.5 m in D48), or the weapon's own reach plus its type's reach bonus (0 by default) |
-
-**Charge**
-
-| Setting | Default |
-|---|---|
-| Charge time: fists | 0.5 s |
-| Charge time: one-handed blunt | 0.75 s |
-| Charge time: two-handed blunt | 1.0 s |
-| Charge time: hammer | 1.2 s |
-| Full-charge damage bonus | +33% (scalable) |
+| Leap in mid-air | On |
+| Leap only when fully charged (was "Always charged") | Off |
 | Charge bar | On |
-| Sound at full charge | On |
-| Bar flash at full charge | On |
-| Rumble pulse at full charge | On |
-| Screen-edge pulse at full charge | Off (subtle, strong) |
+| EMP on a crit | On |
+| Send flying (new, D76) | On |
+| Stagger when not sent flying | On |
+| Push follows the swing direction | On |
+| Non-lethal throws (new, D77) | Off |
 
-**Stronger leap**
+**3. Battering Ram: Leap**: Leap range 15 m; Distance damage bonus up to +50% at 20 m; Minimum leap reach 3.0 m.
 
-| Setting | Default |
-|---|---|
-| Extra range | +50% |
-| EMP on crit | **On** (the user wants a switch: it doesn't feel quite vanilla) |
-| EMP radius | 3 m |
-| EMP damage | 100% of the weapon's base hit, as Electrical. **Not scaled by the crit**, charge or distance. Never hurts V |
-| Launch chance | 80% |
-| Launch chance, Heavy archetypes | 30% |
-| Launch force | 20% (100% matches the Gorilla Arms knockout punch) |
-| Push follows the swing | On |
-| Stagger when not launched | Always |
-| Hit stop on landing | 0.15 s (0.1 s until 2026-11-22, D44) |
+**4. Charge**: Full-charge damage bonus +33%; Charge speed under Sandevistan Full; Charge time: fists 0.5 s, Gorilla Arms 0.75 s, one-handed 0.75 s, two-handed 1.0 s, hammers 1.2 s; Full charge: sound On, rumble On, bar flash On (shown while Charge bar).
+
+**5. Thunder Breaker**: Extra range +50%; Hit stop 0.15 s.
+
+**6. Thunder Breaker: Send flying** (shown while Send flying, except the last): chance in combat 80%, on heavy enemies 30%, force 20%; chance unalerted 80%, on heavy enemies 30%, force 20%; Small push at an idle spot 6% (shown while Stagger when not sent flying).
+
+**7. Thunder Breaker: EMP** (shown while EMP on a crit): Radius 3 m; Damage 100% of the weapon's hit, as Electrical, not scaled by the crit, charge or distance; never hurts V.
+
+**8. Advanced: swing and reach per weapon**: Swing start: fists 0.21 s, Gorilla Arms 0.21 s, one-handed 0.3 s, two-handed 0.3 s, hammers 0.5 s; Reach bonus 0 m for each.
+
+**9. Troubleshooting**: Write a log (Off).
 
 - **Never launched:** bosses, MaxTac and "massive" enemies.
 - **Why the EMP doesn't scale with the crit:** a fully charged crit leap already stacks strong attack ×1.5, full charge +33%, distance up to +50% and the crit itself, roughly four times a normal strong attack.
@@ -452,6 +443,13 @@ Found from the log (207 Thunder Breaker leaps at force 20%) and the game's data 
 - **Cause:** our pool's decay was on, with a **1.5 s start delay restarted by every change** (`delayOnChange`). At the start of a hold the mod empties the pool (a change), and the game's `StartPool` turns the fill on and the decay off. On the first hold after a load the decay's delay was still running and held the fill back for 1.5 s. The game's `StopPool` (hold end) never turns the decay back on, so every later hold had no decay and no wait. The decay therefore only ever acted on the first hold, and did nothing useful there: the mod empties the charge itself after every attack.
 - **Fix:** the decay matches the game's own weapon charge (`BaseStatPools.WeaponChargeDecay`): off, no start delay, 300 per second, no delay on change. No script used the decay.
 - **Confirmed in game (2026-11-24):** the user says the first charge fills at once. Log: hold #1 after a load grew at 0 s and was full at 0.99 s, like holds #2 and #3. The bar was hidden for 0.51 s after the load, then shown empty.
+
+### Settings layout, Send flying switch, Non-lethal throws (2026-11-24, D76 and D77)
+
+- **Layout (D76):** the 9 groups of section 5, chosen with the user. Models: the user's other mods with Mod Settings pages (Ragdoll Physics Overhaul has a "Toggles" group, Readable Shards hides options with `ModSettings.dependency`); the installed Mod Settings (0.2.27) supports `ModSettings.order` per option and `ModSettings.dependency "[Class.]prop[=value]"`. A switch cannot be shown twice (two copies would be two options), so the switches were moved to Features and the options that belong to them are hidden while they are off. Label changes: "Always charged" is "Leap only when fully charged" (what it does: without a full charge, a held strong attack is a normal one; it also gives blunt weapons their charge without Thunder Breaker); "Push follows the swing direction"; shorter labels inside the Send flying and EMP groups. The settings file is generated in that order (every variable name, type, default and range checked unchanged).
+- **Send flying (D76):** a switch, On by default. Off: no throws; a rolled throw becomes the stagger or small push. Thunder Breaker's perk card has a variant without throws ("Its hit staggers the enemy", or no line when Stagger is off too): keys `BluntLeap-Perk-Stronger-Desc-<E|0><S|0><T|0>`.
+- **Non-lethal throws (D77):** Off by default. On: for an NPC this mod threw in the last 10 s, the ragdoll impact (`DamageSystem.ProcessRagdollHit`, wrapped) gets the Nonlethal hit flag, and the "should die" mark this impact set (a hard impact: `MarkForDeath`) is taken off (`NPCPuppet.BluntLeapCancelDeathMark`). The game's `NPCPuppet.OnPotentialDeath` then knocks it out (Unconscious, or Defeated with Unconscious immunity) instead of killing it. V's own hits are not changed. Not yet tested in game.
+- Proposed and not built (the user chose only Non-lethal throws): a switch for the all-NPC body fix, a throw height setting; hit-stop strength was not recommended.
 
 ### Not built
 
