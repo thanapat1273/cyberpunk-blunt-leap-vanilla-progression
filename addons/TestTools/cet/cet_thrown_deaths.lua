@@ -1,4 +1,5 @@
 -- Blunt Leap: the last thrown enemies that died (CET console, one line).
+-- Needs the test add-on (addons/TestTools, r6/scripts/BluntLeapTest installed).
 --
 -- Needs Blunt Leap from 2026-11-24 on. (With "Write a log" on in Mod
 -- Settings, each such death also shows a short message on screen, about
@@ -10,4 +11,4 @@
 -- left, before they died), and what the game's loot check says for the body
 -- now. Changes nothing else.
 
-print(Game.GetScriptableSystemsContainer():Get("BluntLeapSystem"):ThrownDeathReport())
+print(Game.GetScriptableSystemsContainer():Get("BluntLeapTestSystem"):ThrownDeathReport())

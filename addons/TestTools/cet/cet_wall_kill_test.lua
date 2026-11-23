@@ -1,4 +1,5 @@
--- Blunt Leap: wall-kill test mode (CET console). Needs Blunt Leap from
+-- Blunt Leap: wall-kill test mode (CET console). Needs the test add-on
+-- (addons/TestTools, r6/scripts/BluntLeapTest installed) and Blunt Leap from
 -- 2026-11-24 on.
 --
 -- Recreates "thrown with a little health left, killed by the wall": while
@@ -14,7 +15,7 @@
 -- It is not saved, and loading a save turns it off.
 --
 -- Turn on (force 150%; change the number as you like):
-Game.GetScriptableSystemsContainer():Get("BluntLeapSystem"):SetWallKillTest(true, 150)
+Game.GetScriptableSystemsContainer():Get("BluntLeapTestSystem"):SetWallKillTest(true, 150)
 
 -- Turn off:
-Game.GetScriptableSystemsContainer():Get("BluntLeapSystem"):SetWallKillTest(false, 0)
+Game.GetScriptableSystemsContainer():Get("BluntLeapTestSystem"):SetWallKillTest(false, 0)

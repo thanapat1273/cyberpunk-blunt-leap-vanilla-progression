@@ -89,17 +89,27 @@ public class BluntLeapDeadStateWatcher extends IScriptable {
   }
 }
 
-// Wall-kill test mode: just after the throwing hit, leave the NPC with one
-// health point (see BluntLeapSystem.SetWallKillTest).
-public class BluntLeapLowHealthCallback extends DelayCallback {
-  public let system: wref<BluntLeapSystem>;
-  public let npc: wref<NPCPuppet>;
-
-  public func Call() -> Void {
-    if IsDefined(this.system) {
-      this.system.LeaveOneHealth(this.npc);
-    };
+// Hooks for the optional test add-on (addons/TestTools in the repository,
+// not part of the release). The add-on registers a subclass of this with
+// BluntLeapSystem.SetTestListener when a save loads. Without it nothing is
+// registered and these are never called; as they stand they change nothing.
+public class BluntLeapTestListener extends IScriptable {
+  // The chance (%) of sending an enemy flying, just rolled for a hit.
+  public func ThrowChance(chance: Float) -> Float {
+    return chance;
   }
+
+  // The force (%) of that throw.
+  public func ThrowForce(force: Float) -> Float {
+    return force;
+  }
+
+  // An enemy has just been sent flying.
+  public func Thrown(system: ref<BluntLeapSystem>, target: ref<NPCPuppet>) -> Void {}
+
+  // A thrown enemy died; reason says how, lootable what the game's loot
+  // check says 2.5 s after its death.
+  public func ThrownDeath(system: ref<BluntLeapSystem>, npc: wref<NPCPuppet>, reason: String, lootable: Bool) -> Void {}
 }
 
 // Watches a charge we added. Tells the system the moment it becomes full,
@@ -169,27 +179,17 @@ public class BluntLeapSystem extends ScriptableSystem {
   // NPCs this mod sent flying (newest last, at most 64), so their bodies can
   // be made lootable again when they die (ClearThrownBody).
   private let m_thrownIds: array<EntityID>;
-  // Thrown NPCs that died since the save was loaded, newest last, at most
-  // 10: who, when (sim time), and how (after going down or not). For the CET
-  // report (ThrownDeathReport) and the on-screen message.
   // Thrown NPCs whose ragdoll hit something hard (a wall, the ground) and
   // when (sim time), newest last, at most 16: a death right after one is a
-  // death from that impact.
+  // death from that impact (for the log).
   private let m_impactIds: array<EntityID>;
   private let m_impactTimes: array<Float>;
 
-  // Wall-kill test mode (CET only, not saved, off after a load): every
-  // fully charged leap hit throws, with this force (%), and leaves the
-  // enemy with one health point, so the impact kills it.
-  private let m_wallTest: Bool;
-
   // Watchers of dead NPCs' AI state (newest last, at most 64).
   private let m_deadWatchers: array<ref<BluntLeapDeadStateWatcher>>;
-  private let m_wallTestForce: Float;
 
-  private let m_diedIds: array<EntityID>;
-  private let m_diedTimes: array<Float>;
-  private let m_diedTexts: array<String>;
+  // The test add-on's listener, if it is installed (BluntLeapTestListener).
+  private let m_testListener: ref<BluntLeapTestListener>;
 
   // The melee crosshair now on screen (its bar shows our charge), and
   // whether a strong attack is being held.
@@ -256,7 +256,6 @@ public class BluntLeapSystem extends ScriptableSystem {
     // requested a pool before this runs, and every new request sets it.
     this.m_holding = false;
     this.m_holdNumber = 0;
-    this.m_wallTest = false;
     ArrayClear(this.m_deadWatchers);
     ArrayClear(this.m_impactIds);
     ArrayClear(this.m_impactTimes);
@@ -1244,56 +1243,6 @@ public class BluntLeapSystem extends ScriptableSystem {
     check.died = died;
     check.reason = reason;
     GameInstance.GetDelaySystem(npc.GetGame()).DelayCallback(check, 2.5, false);
-    if died {
-      this.NoteThrownDeath(npc.GetEntityID(), reason);
-    };
-  }
-
-  // A thrown NPC died: remembered for the CET report (at most 10, newest
-  // last).
-  private final func NoteThrownDeath(id: EntityID, reason: String) -> Void {
-    if ArraySize(this.m_diedIds) >= 10 {
-      ArrayErase(this.m_diedIds, 0);
-      ArrayErase(this.m_diedTimes, 0);
-      ArrayErase(this.m_diedTexts, 0);
-    };
-    ArrayPush(this.m_diedIds, id);
-    ArrayPush(this.m_diedTimes, this.Now());
-    ArrayPush(this.m_diedTexts, reason);
-  }
-
-  // For the CET console (tools/cet_thrown_deaths.lua): the last thrown NPCs
-  // that died since the save was loaded, with how long ago, how they died,
-  // and what the game's loot check says for each body now.
-  public final func ThrownDeathReport() -> String {
-    let text: String;
-    let i: Int32 = ArraySize(this.m_diedIds) - 1;
-    let npc: ref<NPCPuppet>;
-    let now: String;
-    if i < 0 {
-      return "Battering Ram: no thrown enemy has died since the save was loaded.";
-    };
-    text = "Battering Ram: thrown enemies that died (newest first):";
-    while i >= 0 {
-      npc = GameInstance.FindEntityByID(this.GetGameInstance(), this.m_diedIds[i]) as NPCPuppet;
-      if IsDefined(npc) {
-        now = npc.BluntLeapRefreshLoot() ? "loot prompt ON" : "loot prompt OFF";
-      } else {
-        now = "body no longer loaded";
-      };
-      text += "\n  #" + BluntLeapSystem.ShortId(this.m_diedIds[i]) + ", " + FloatToStringPrec(this.Now() - this.m_diedTimes[i], 0) + " s ago, " + this.m_diedTexts[i] + ": " + now;
-      i -= 1;
-    };
-    return text;
-  }
-
-  // A short message on screen (only with "Write a log" on).
-  private final func ScreenMessage(text: String) -> Void {
-    let msg: SimpleScreenMessage;
-    msg.isShown = true;
-    msg.duration = 5.0;
-    msg.message = text;
-    GameInstance.GetBlackboardSystem(this.GetGameInstance()).Get(GetAllBlackboardDefs().UI_Notifications).SetVariant(GetAllBlackboardDefs().UI_Notifications.OnscreenMessage, ToVariant(msg), true);
   }
 
   // 0.1 s and 1 s after a thrown NPC went down (after). If it is still down
@@ -1312,8 +1261,8 @@ public class BluntLeapSystem extends ScriptableSystem {
     if after >= 2.0 {
       lootable = npc.BluntLeapRefreshLoot();
       this.Log("Thrown NPC #" + BluntLeapSystem.ShortId(npc.GetEntityID()) + " " + FloatToStringPrec(after, 1) + " s after going down: loot prompt set again, " + (lootable ? "on" : "off") + " (dead " + ToString(npc.IsDead()) + ")" + (died ? " [after its death]" : ""));
-      if died && (this.Settings().debugLog || this.m_wallTest) {
-        this.ScreenMessage("Battering Ram: #" + BluntLeapSystem.ShortId(npc.GetEntityID()) + " " + reason + ". Loot check: " + (lootable ? "ON" : "OFF"));
+      if died {
+        this.TestHookThrownDeath(npc, reason, lootable);
       };
       return;
     };
@@ -1456,46 +1405,33 @@ public class BluntLeapSystem extends ScriptableSystem {
     return i >= 0 && this.Now() - this.m_impactTimes[i] <= 1.0;
   }
 
-  // Wall-kill test mode, from the CET console (tools/cet_wall_kill_test.lua).
-  // On: every fully charged leap hit on an enemy that can be thrown throws
-  // it (no stagger or small-push roll, alerted or not) with the given force
-  // (%), and right after the hit it is left with one health point (if the
-  // hit itself did not take it down), so its impact with a wall or the
-  // ground kills it. Not
-  // saved; off again after a load. Returns what it did, for the console.
-  public final func SetWallKillTest(on: Bool, force: Float) -> String {
-    let text: String;
-    this.m_wallTest = on;
-    this.m_wallTestForce = ClampF(force, 5.0, 300.0);
-    text = on ? "Battering Ram test: wall kills ON, every charged leap hit throws with force " + FloatToStringPrec(this.m_wallTestForce, 0) + "% and leaves 1 health" : "Battering Ram test: wall kills OFF";
-    this.ScreenMessage(text);
-    this.Log(text);
-    return text;
+  // ------------------------------------------- hooks for the test add-on
+  //
+  // Without the optional test add-on (addons/TestTools in the repository,
+  // not part of the release) no listener is set, and these change nothing.
+
+  public final func SetTestListener(listener: ref<BluntLeapTestListener>) -> Void {
+    this.m_testListener = listener;
   }
 
-  public final func WallKillTest() -> Bool {
-    return this.m_wallTest;
+  public final func TestHookThrowChance(chance: Float) -> Float {
+    return IsDefined(this.m_testListener) ? this.m_testListener.ThrowChance(chance) : chance;
   }
 
-  public final func WallKillTestForce() -> Float {
-    return this.m_wallTestForce;
+  public final func TestHookThrowForce(force: Float) -> Float {
+    return IsDefined(this.m_testListener) ? this.m_testListener.ThrowForce(force) : force;
   }
 
-  // Test mode: one health point left, if the hit did not kill it.
-  public final func LeaveOneHealth(npc: wref<NPCPuppet>) -> Void {
-    let pools: ref<StatPoolsSystem>;
-    let id: StatsObjectID;
-    if !IsDefined(npc) {
-      return;
+  public final func TestHookThrown(target: ref<NPCPuppet>) -> Void {
+    if IsDefined(this.m_testListener) {
+      this.m_testListener.Thrown(this, target);
     };
-    if npc.IsDead() || npc.IsIncapacitated() {
-      this.Log("Test: #" + BluntLeapSystem.ShortId(npc.GetEntityID()) + " already went down from the hit");
-      return;
+  }
+
+  public final func TestHookThrownDeath(npc: wref<NPCPuppet>, reason: String, lootable: Bool) -> Void {
+    if IsDefined(this.m_testListener) {
+      this.m_testListener.ThrownDeath(this, npc, reason, lootable);
     };
-    pools = GameInstance.GetStatPoolsSystem(npc.GetGame());
-    id = Cast<StatsObjectID>(npc.GetEntityID());
-    this.Log("Test: #" + BluntLeapSystem.ShortId(npc.GetEntityID()) + " had " + FloatToStringPrec(pools.GetStatPoolValue(id, gamedataStatPoolType.Health, false), 1) + " health after the hit, left with 1");
-    pools.RequestSettingStatPoolValue(id, gamedataStatPoolType.Health, 1.0, GetPlayer(npc.GetGame()), false);
   }
 
   // The last 5 digits of an entity's hash, as the hit lines show them.

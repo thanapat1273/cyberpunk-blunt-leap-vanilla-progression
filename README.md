@@ -84,6 +84,9 @@ To remove the mod: refund the two perks first (or switch the unlock rule to one 
 | `tools/make_videos.py` | cuts the in-game recordings and encodes them into the two perk-card videos |
 | `tools/make_release.sh` | builds the zip for Nexus Mods (`dist/BatteringRam-<version>.zip`) from the last commit |
 | `tools/render_perk_box.py` | renders a perk box (and its wires) at high resolution from the game's own UI textures and style values |
+| `tools/cet_body_check.lua`, `tools/cet_set_dead.lua` | CET console lines for testing: what is on the body under the crosshair; set its AI state to Dead |
+| `tools/scan_archive_names.py` | read-only scan of the game archives for class names (used to find every use of the body interaction condition) |
+| `addons/TestTools/` | optional test add-on, not part of the release: on-screen death messages, the wall-kill test mode and a list of thrown deaths (CET), "Game hit" log lines. Its own README says how to install and remove it |
 
 ## Credits
 

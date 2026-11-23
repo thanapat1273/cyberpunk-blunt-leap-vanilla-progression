@@ -96,11 +96,8 @@ public abstract class BluntLeapImpact {
       chance = heavy ? settings.launchChanceHeavy : settings.launchChance;
       force = settings.launchForce;
     };
-    if system.WallKillTest() {
-      // Wall-kill test mode (CET): always a throw, with the test's force.
-      chance = 100.0;
-      force = system.WallKillTestForce();
-    };
+    chance = system.TestHookThrowChance(chance);
+    force = system.TestHookThrowForce(force);
     if !exempt && RandRangeF(0.0, 100.0) < chance {
       // One throw per enemy per leap (a second hit on it adds nothing).
       if system.TakeThrow(target.GetEntityID()) {
@@ -138,19 +135,6 @@ public abstract class BluntLeapImpact {
     let threshold: Float = GameInstance.GetStatsSystem(target.GetGame()).GetStatValue(Cast<StatsObjectID>(target.GetEntityID()), gamedataStatType.KnockdownDamageThresholdImpulse);
     let id: String = ToString(EntityID.GetHash(target.GetEntityID()));
     return TDBID.ToStringDEBUG(target.GetRecordID()) + " #" + StrRight(id, 5) + ", threshold " + FloatToStringPrec(threshold, 0) + (BluntLeapImpact.IsHeavy(target) ? ", heavy" : "") + ", " + EnumValueToString("gamedataItemType", Cast<Int64>(EnumInt(WeaponObject.GetWeaponType(weapon.GetItemID()))));
-  }
-
-  // Wall-kill test mode: 0.05 s after the throwing hit (before the impact)
-  // the enemy is left with one health point (BluntLeapSystem.LeaveOneHealth).
-  // The hit's own damage cannot be changed here: the game deals it before
-  // this stage of the hit. A hit that kills or knocks out on its own is
-  // logged as such.
-  private final static func SpareForTest(system: ref<BluntLeapSystem>, target: ref<NPCPuppet>, hitEvent: ref<gameHitEvent>) -> Void {
-    let callback: ref<BluntLeapLowHealthCallback>;
-    callback = new BluntLeapLowHealthCallback();
-    callback.system = system;
-    callback.npc = target;
-    GameInstance.GetDelaySystem(target.GetGame()).DelayCallback(callback, 0.05, false);
   }
 
   // The game's heavy enemy types.
@@ -273,9 +257,7 @@ public abstract class BluntLeapImpact {
     // Its body must stay lootable if it dies before getting up
     // (BluntLeapSystem.ClearThrownBody).
     system.NoteThrown(target.GetEntityID());
-    if system.WallKillTest() {
-      BluntLeapImpact.SpareForTest(system, target, hitEvent);
-    };
+    system.TestHookThrown(target);
     system.Log(label + ": " + what + ", force " + FloatToStringPrec(impulse, 0) + ", side " + FloatToStringPrec(side, 1) + ", lift " + FloatToStringPrec(lift, 1));
   }
 }
@@ -299,10 +281,9 @@ protected func OnIncapacitated() -> Void {
 // health left can go down first and die later (BluntLeapSystem.ClearThrownBody).
 //
 // Whether the NPC had already gone down before it died is read before the
-// game's death handling (for the log). With "Write a log" on, each thrown
-// NPC's death is shown on screen and listed by the CET report
-// (tools/cet_thrown_deaths.lua), so a body without a loot prompt can be
-// matched to it.
+// game's death handling (for the log). The optional test add-on
+// (addons/TestTools) shows each thrown NPC's death on screen and lists the
+// last ones, so a body without a loot prompt can be matched to it.
 @wrapMethod(ScriptedPuppet)
 protected func OnDied() -> Void {
   let npc: ref<NPCPuppet> = this as NPCPuppet;
@@ -368,37 +349,4 @@ protected cb func OnRagdollEnabledEvent(evt: ref<RagdollNotifyEnabledEvent>) -> 
     };
   };
   return result;
-}
-
-// For the log only (no change in play): every hit the game processes, from V
-// with a blunt weapon, within 3 s of a stronger leap's start. It runs right
-// after the hit-reaction stage callbacks (where the Thunder Breaker effector
-// runs), so a "Game hit" line without a "Hit #" line before it is a hit the
-// effector did not see; the line says what kind of hit it was.
-@wrapMethod(DamageSystem)
-private func ProcessHitReaction(hitEvent: ref<gameHitEvent>) -> Void {
-  let system: ref<BluntLeapSystem>;
-  let player: ref<PlayerPuppet>;
-  let target: ref<NPCPuppet>;
-  let weapon: ref<WeaponObject>;
-  let since: Float;
-  wrappedMethod(hitEvent);
-  if !IsDefined(hitEvent) || !IsDefined(hitEvent.attackData) {
-    return;
-  };
-  player = hitEvent.attackData.GetInstigator() as PlayerPuppet;
-  target = hitEvent.target as NPCPuppet;
-  weapon = hitEvent.attackData.GetWeapon();
-  if !IsDefined(player) || !IsDefined(target) || !IsDefined(weapon) || !WeaponObject.IsBlunt(weapon.GetItemID()) {
-    return;
-  };
-  system = BluntLeapSystem.Get(player.GetGame());
-  if !IsDefined(system) || !system.Settings().debugLog {
-    return;
-  };
-  since = system.SinceStrongStart();
-  if since < 0.0 || since > 3.0 {
-    return;
-  };
-  system.Log("Game hit +" + FloatToStringPrec(since, 2) + " s, " + TDBID.ToStringDEBUG(target.GetRecordID()) + ", attack " + EnumValueToString("gamedataAttackType", Cast<Int64>(EnumInt(hitEvent.attackData.GetAttackType()))) + ", attitude " + EnumValueToString("EAIAttitude", Cast<Int64>(EnumInt(GameObject.GetAttitudeTowards(target, player)))) + ", in combat " + ToString(NPCPuppet.IsInCombat(target)) + ", Thunder Breaker armed " + ToString(system.StrongLeapArmed()));
 }
