@@ -78,6 +78,7 @@ With Stronger Leap owned, or "Always charged" on, draw the weapon again first.
 | 5.5 | Boss or MaxTac | Never thrown |
 | 5.6 | A crit on a fully charged leap | EMP burst at the enemy; V takes no damage from it |
 | 5.7 | With RPO and Relentless installed | A thrown enemy lands and gets up normally; no double throw |
+| 5.8 | Send an enemy flying, then kill it before it gets up (or let the fall kill it) | Its body shows the loot prompt as usual. With "Write a log" on: "Thrown NPC down: N NonInteractable taken off" |
 
 ## 6. Saving
 

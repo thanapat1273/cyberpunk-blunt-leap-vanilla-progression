@@ -338,6 +338,17 @@ The swing start and the reach bonus are now two settings for each blunt weapon t
 - **No bar:** the game's bar shows a pool, and the timed charge is not one.
 - 40 settings.
 
+### Thrown enemies left bodies that could not be looted (2026-11-23, D53)
+
+- **Seen in game:** many enemies that were sent flying dropped loot, but no loot prompt came up.
+- **Cause** (game scripts):
+  - when a ragdoll starts while an NPC is alive, the game puts the status effect `BaseStatusEffect.NonInteractable` on it (`NPCPuppet.OnRagdollEnabledEvent`);
+  - it has no time limit and can stack (up to 200);
+  - the game takes it off in one place only: the AI task `DoClearActiveStatusEffect` at the end of the ragdoll recovery, when the NPC gets up.
+  - The game rarely ragdolls a living NPC, but sending an enemy flying always does. If the enemy dies before getting up, the recovery never runs, the effect stays, and the body and its loot show no prompt.
+- **Fix:** the NPCs this mod sends flying are remembered (`BluntLeapSystem.NoteThrown`, at most 64). A wrapper on `NPCPuppet.OnIncapacitated` (death or knockout; the game processes the loot there) takes every `NonInteractable` stack off them (`ClearThrownBody`). Other NPCs, and the game's other uses of the effect (takedowns), are not touched.
+- **Not fixed:** bodies already lying in a save from before the fix. The fix works from the throw on.
+
 ### Not built
 
 - **Screen-edge pulse at full charge** (default Off in §5): no suitable game effect picked yet.

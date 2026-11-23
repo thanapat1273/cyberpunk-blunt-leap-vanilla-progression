@@ -22,6 +22,9 @@ The full design is in [SPEC.md](SPEC.md). The game facts behind it are in [RESEA
 
 ## Changes
 
+**Next** (not released yet)
+- Fixed: enemies sent flying who died before getting up left bodies whose loot could not be picked up (no loot prompt).
+
 **1.2.0** (2026-11-23)
 - Gorilla Arms now charge by holding a strong attack (setting "Charge time: Gorilla Arms", 0.75 s), with the full-charge sound and rumble, so their leaps can be Thunder Breaker leaps. Before, they never charged: their own charge belongs to the relic perk, which this mod does not touch. No charge bar for Gorilla Arms.
 - Fixed: "Charge speed under Sandevistan: Partial" could be slower than Vanilla with milder Sandevistans. It is now halfway between Vanilla and Full.

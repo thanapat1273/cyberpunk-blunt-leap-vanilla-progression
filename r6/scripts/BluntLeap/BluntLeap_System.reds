@@ -94,6 +94,10 @@ public class BluntLeapSystem extends ScriptableSystem {
   private let m_gorillaFull: Bool;
   private let m_gorillaHold: Int32;
 
+  // NPCs this mod sent flying (newest last, at most 64), so their bodies can
+  // be made lootable again when they die (ClearThrownBody).
+  private let m_thrownIds: array<EntityID>;
+
   // A stronger leap is on its way: its hit gets the extra effects until this time.
   private let m_strongUntil: Float;
   private let m_empDone: Bool;
@@ -127,6 +131,7 @@ public class BluntLeapSystem extends ScriptableSystem {
     this.ForgetCharges();
     this.m_reachMod = null;
     this.StopGorillaCharge();
+    ArrayClear(this.m_thrownIds);
     this.Refresh();
     GameInstance.GetDelaySystem(this.GetGameInstance()).DelayCallback(callback, 1.5, false);
   }
@@ -858,6 +863,43 @@ public class BluntLeapSystem extends ScriptableSystem {
     };
     GameInstance.GetStatsSystem(this.GetGameInstance()).RemoveModifier(Cast<StatsObjectID>(this.m_reachId), this.m_reachMod);
     this.m_reachMod = null;
+  }
+
+  // ------------------------------------------------- thrown NPCs and loot
+  //
+  // When a ragdoll starts while an NPC is alive, the game puts the status
+  // effect NonInteractable on it (NPCPuppet.OnRagdollEnabledEvent). It has no
+  // time limit and can stack. The game takes it off only when the NPC gets
+  // up again (the AI task DoClearActiveStatusEffect, at the end of the
+  // ragdoll recovery). An NPC this mod sends flying is alive when its ragdoll
+  // starts; if it dies before getting up, the recovery never runs, the effect
+  // stays, and the body and its loot show no prompt. So for the NPCs we
+  // threw, every stack is taken off when they die or are knocked out.
+
+  public final func NoteThrown(id: EntityID) -> Void {
+    if ArrayContains(this.m_thrownIds, id) {
+      return;
+    };
+    if ArraySize(this.m_thrownIds) >= 64 {
+      ArrayErase(this.m_thrownIds, 0);
+    };
+    ArrayPush(this.m_thrownIds, id);
+  }
+
+  public final func ClearThrownBody(npc: ref<NPCPuppet>) -> Void {
+    let effect: TweakDBID = t"BaseStatusEffect.NonInteractable";
+    let effects: ref<StatusEffectSystem>;
+    let removed: Int32 = 0;
+    if !IsDefined(npc) || !ArrayContains(this.m_thrownIds, npc.GetEntityID()) {
+      return;
+    };
+    ArrayRemove(this.m_thrownIds, npc.GetEntityID());
+    effects = GameInstance.GetStatusEffectSystem(npc.GetGame());
+    while StatusEffectSystem.ObjectHasStatusEffect(npc, effect) && removed < 200 {
+      effects.RemoveStatusEffect(npc.GetEntityID(), effect, 1u);
+      removed += 1;
+    };
+    this.Log("Thrown NPC down: " + IntToString(removed) + " NonInteractable taken off");
   }
 
   // ---------------------------------------------------- Gorilla Arms charge

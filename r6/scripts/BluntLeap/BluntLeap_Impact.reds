@@ -194,6 +194,22 @@ public abstract class BluntLeapImpact {
     hitEvent.attackData.AddFlag(hitFlag.ForceKnockdown, n"BluntLeap");
     GameInstance.GetDelaySystem(game).DelayEvent(target, CreateForceRagdollEvent(n"Blunt Leap: sent flying"), 0.01, false);
     GameInstance.GetDelaySystem(game).DelayEvent(target, CreateRagdollApplyImpulseEvent(hitEvent.hitPosition, push, 1.0), 0.1, false);
+    // Its body must stay lootable if it dies before getting up
+    // (BluntLeapSystem.ClearThrownBody).
+    system.NoteThrown(target.GetEntityID());
     system.Log("Hit: sent flying, force " + FloatToStringPrec(impulse, 0) + ", side " + FloatToStringPrec(side, 1) + ", lift " + FloatToStringPrec(lift, 1));
   }
+}
+
+// An NPC dies or is knocked out (the game processes its loot here). If this
+// mod sent it flying, the NonInteractable its ragdoll left on it is taken
+// off, so its body and loot can be looted (BluntLeapSystem.ClearThrownBody).
+@wrapMethod(NPCPuppet)
+protected func OnIncapacitated() -> Void {
+  let system: ref<BluntLeapSystem>;
+  wrappedMethod();
+  system = BluntLeapSystem.Get(this.GetGame());
+  if IsDefined(system) {
+    system.ClearThrownBody(this);
+  };
 }
