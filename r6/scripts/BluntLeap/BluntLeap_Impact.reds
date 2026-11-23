@@ -38,6 +38,7 @@ public abstract class BluntLeapImpact {
     let label: String;
     let threshold: Float;
     let unalerted: Bool;
+    let atSpot: Bool;
     let heavy: Bool;
     let force: Float;
 
@@ -85,9 +86,11 @@ public abstract class BluntLeapImpact {
     threshold = GameInstance.GetStatsSystem(target.GetGame()).GetStatValue(Cast<StatsObjectID>(target.GetEntityID()), gamedataStatType.KnockdownDamageThresholdImpulse);
     exempt = target.IsBoss() || Equals(target.GetNPCRarity(), gamedataNPCRarity.MaxTac) || target.IsMassive() || threshold <= 0.0;
     // An enemy not in combat yet (the first strike on an unaware group) has
-    // its own chance and force. It shows no stagger when hit (it switches to
-    // combat instead), so a rolled stagger becomes a very small throw.
+    // its own chance and force.
     unalerted = !NPCPuppet.IsInCombat(target);
+    // An enemy at an idle spot shows no stagger when hit (see AtIdleSpot),
+    // so a rolled stagger becomes a very small throw there.
+    atSpot = BluntLeapImpact.AtIdleSpot(target);
     heavy = BluntLeapImpact.IsHeavy(target);
     if unalerted {
       chance = heavy ? settings.unalertedChanceHeavy : settings.unalertedChance;
@@ -107,9 +110,9 @@ public abstract class BluntLeapImpact {
       };
     } else {
       if settings.stagger {
-        if unalerted && !exempt && settings.unalertedStaggerForce > 0.0 {
+        if atSpot && !exempt && settings.unalertedStaggerForce > 0.0 {
           if system.TakeThrow(target.GetEntityID()) {
-            BluntLeapImpact.Launch(system, player, target, hitEvent, label, settings.unalertedStaggerForce, "small push instead of a stagger (unalerted)");
+            BluntLeapImpact.Launch(system, player, target, hitEvent, label, settings.unalertedStaggerForce, "small push instead of a stagger (at an idle spot" + (unalerted ? ", unalerted)" : ")"));
           } else {
             system.Log(label + ": already sent flying by this leap, not pushed again");
           };
@@ -122,7 +125,7 @@ public abstract class BluntLeapImpact {
           if attackData.GetHitReactionSeverityMax() < 2 {
             attackData.SetHitReactionSeverityMax(2);
           };
-          system.Log(label + ": stagger" + (exempt ? " (cannot be thrown)" : "") + (unalerted ? " (unalerted)" : ""));
+          system.Log(label + ": stagger" + (exempt ? " (cannot be thrown)" : "") + (unalerted ? " (unalerted)" : "") + (atSpot ? " (at an idle spot)" : ""));
         };
       };
     };
@@ -135,6 +138,20 @@ public abstract class BluntLeapImpact {
     let threshold: Float = GameInstance.GetStatsSystem(target.GetGame()).GetStatValue(Cast<StatsObjectID>(target.GetEntityID()), gamedataStatType.KnockdownDamageThresholdImpulse);
     let id: String = ToString(EntityID.GetHash(target.GetEntityID()));
     return TDBID.ToStringDEBUG(target.GetRecordID()) + " #" + StrRight(id, 5) + ", threshold " + FloatToStringPrec(threshold, 0) + (BluntLeapImpact.IsHeavy(target) ? ", heavy" : "") + ", " + EnumValueToString("gamedataItemType", Cast<Int64>(EnumInt(WeaponObject.GetWeaponType(weapon.GetItemID()))));
+  }
+
+  // At an idle spot: in a workspot (leaning, sitting, smoking, chatting, at
+  // a terminal) and not in cover. The game's own hit reactions turn any hit
+  // on such an enemy into a twitch, with no stagger or impact, and the hit
+  // sends it into combat (HitReactionComponent: m_inWorkspot && !m_inCover;
+  // vanilla, for any attack). An unalerted enemy that is only standing or
+  // walking gets its stagger as usual. Seen in the logs: 46 of 92 Thunder
+  // Breaker hits on unalerted enemies were on enemies at such a spot.
+  private final static func AtIdleSpot(target: ref<NPCPuppet>) -> Bool {
+    if !GameInstance.GetWorkspotSystem(target.GetGame()).IsActorInWorkspot(target) {
+      return false;
+    };
+    return AICoverHelper.GetCurrentCover(target) == Cast<Uint64>(0);
   }
 
   // The game's heavy enemy types.

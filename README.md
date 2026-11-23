@@ -22,6 +22,9 @@ The full design is in [SPEC.md](SPEC.md). The game facts behind it are in [RESEA
 
 ## Changes
 
+**Next** (not released yet)
+- The small push that replaces a stagger now goes only to enemies at an idle spot (leaning on a wall, sitting, smoking, chatting, at a terminal), where the game never shows a stagger; it was given to every enemy not in combat yet. Unalerted enemies that are only standing or walking get the stagger again. The setting is now called "Small push instead of stagger, at an idle spot" and keeps its value.
+
 **1.2.1** (2026-11-24)
 - Fixed: enemies sent flying who died before getting up left bodies whose loot could not be picked up (no loot prompt). This includes enemies knocked out by the same hit that sends them flying, and enemies killed by hitting a wall or the ground after being thrown. The game can leave a body killed by an impact (also a car) with no loot and no pick-up, because it sets the body's AI state back from Dead to Relaxed a moment after the death; the mod watches each dead NPC's AI state and keeps it Dead, for every NPC.
 - Sending flying is more consistent: an enemy is pushed at most once per leap (a swing that hit it twice could throw it 20 to 50 m), and enemies the game says cannot be knocked down (drones, mechs, Berserk) are no longer given a tiny push; they are left to the game.

@@ -419,6 +419,8 @@ Found from the log (207 Thunder Breaker leaps at force 20%) and the game's data 
 - 44 settings.
 - **Confirmed in game (diagnosis log):** the unalerted first enemy was "in combat false", with attitude Neutral, so the friendly rule was not the cause. The small push fired (force 48 at 4%). **Default raised to 6%** after testing (D59).
 
+- **Corrected 2026-11-24 (D75): the reason is the idle spot, not "not in combat".** Game scripts: `HitReactionComponent` turns any hit reaction into a twitch (no stagger, no impact) and sends a combat-hit stimulus when the NPC is in a workspot and not in cover (`IsActorInWorkspot`, `AICoverHelper.GetCurrentCover`; it does not check combat). Vanilla, for any attack, a heavy attack too. Logs: 46 of 92 Thunder Breaker hits on unalerted enemies were on enemies at such a spot; the pipe-wrench scavenger of the first report was at one every time. So the small push now goes to enemies at an idle spot (alerted or not, `BluntLeapImpact.AtIdleSpot`), and other enemies get the stagger request as before. The setting's label is "Small push instead of stagger, at an idle spot: force" (variable `unalertedStaggerForce` unchanged). The "unalerted" throw chance and force stay as they are. Whether a stagger actually plays on an unalerted enemy just standing or walking is up to its AI (behaviour files, not scripts): to be confirmed in game (TESTING 5.11).
+
 ### Charge bar on load, and the first charge (2026-11-23, D60)
 
 - **Seen in game:** after loading with a blunt weapon, the charge bar showed a fill (50 to 100%, maybe any). The first charge then waited 0.5 to 2 s before the bar started to fill.

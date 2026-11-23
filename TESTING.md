@@ -85,6 +85,7 @@ With Stronger Leap owned, or "Always charged" on, draw the weapon again first.
 | 5.8c | Wall kills: install the test add-on (`addons/TestTools`), turn on the test mode (`addons/TestTools/cet/cet_wall_kill_test.lua`, e.g. force 150%), throw enemies at walls with fully charged leaps | The wall kills them, as in vanilla. Log, a second after such a death: "NPC #nnnnn ... died but its AI state was X a second later: set to Dead" (or nothing, if the game set Dead itself). **Every body can be looted and picked up.** The CET body check shows "AI state" Dead. Turn the test mode off afterwards ✅ 2026-11-24 |
 | 5.9 | A crit on a fully charged leap into 2 or 3 enemies close together | The enemies near the target that the swing did not hit are staggered by the EMP (unless they resist staggers or are Berserk) |
 | 5.10 | Fully charged first strike on an unalerted enemy, several reloads | Either a throw (log "sent flying (unalerted)") or a small push (log "small push instead of a stagger (unalerted)"), never nothing. Chances and forces: the "unalerted" settings in Thunder Breaker |
+| 5.11 | A stagger roll on an enemy at an idle spot (leaning, sitting, smoking, chatting) and on an unalerted enemy just standing or walking | At the spot: a small push (log "small push instead of a stagger (at an idle spot, unalerted)"). Standing or walking: a stagger shows (log "stagger (unalerted)") |
 
 ## 6. Saving
 
