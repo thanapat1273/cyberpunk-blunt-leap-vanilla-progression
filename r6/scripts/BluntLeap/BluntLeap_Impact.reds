@@ -261,8 +261,26 @@ protected func OnIncapacitated() -> Void {
   wrappedMethod();
   system = BluntLeapSystem.Get(this.GetGame());
   if IsDefined(system) {
-    system.ClearThrownBody(this);
+    system.ClearThrownBody(this, "went down");
   };
+}
+
+// A ragdoll starts. The game puts NonInteractable on an NPC that is not dead
+// at this point, and a knocked-out NPC is not dead. If this mod threw the NPC
+// and it is already down (the throwing hit knocked it out, or it was knocked
+// out while lying from an earlier throw), the effect is taken off again: no
+// ragdoll recovery will come to do it.
+@wrapMethod(NPCPuppet)
+protected cb func OnRagdollEnabledEvent(evt: ref<RagdollNotifyEnabledEvent>) -> Bool {
+  let system: ref<BluntLeapSystem>;
+  let result: Bool = wrappedMethod(evt);
+  if this.IsIncapacitated() || !ScriptedPuppet.IsActive(this) {
+    system = BluntLeapSystem.Get(this.GetGame());
+    if IsDefined(system) {
+      system.ClearThrownBody(this, "ragdoll started while down");
+    };
+  };
+  return result;
 }
 
 // For the log only (no change in play): every hit the game processes, from V

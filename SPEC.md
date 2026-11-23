@@ -348,6 +348,10 @@ The swing start and the reach bonus are now two settings for each blunt weapon t
   - The game rarely ragdolls a living NPC, but sending an enemy flying always does. If the enemy dies before getting up, the recovery never runs, the effect stays, and the body and its loot show no prompt.
 - **Fix:** the NPCs this mod sends flying are remembered (`BluntLeapSystem.NoteThrown`, at most 64). A wrapper on `NPCPuppet.OnIncapacitated` (death or knockout; the game processes the loot there) takes every `NonInteractable` stack off them (`ClearThrownBody`). Other NPCs, and the game's other uses of the effect (takedowns), are not touched.
 - **Not fixed:** bodies already lying in a save from before the fix. The fix works from the throw on.
+- **Second case (2026-11-24, D63):** two bodies without a prompt again. Log: both were thrown by the hit that took them down (a Tyger Claw thrown a second time while still lying from the first throw, and one thrown and knocked out by the same hit); "Thrown NPC down" ran at that moment.
+  - **Cause:** `OnRagdollEnabledEvent` adds the effect when `ScriptedPuppet.IsAlive` is true, which only means "not dead". Blunt weapons knock out instead of killing, so a knocked-out NPC counts as alive. The mod forces the ragdoll 0.01 s after the hit; when that hit had already knocked the NPC out, the effect was cleared first and then put back by the ragdoll, with no recovery to come.
+  - **Fix:** a wrapper on `NPCPuppet.OnRagdollEnabledEvent`: when the NPC is one this mod threw and is already down (`IsIncapacitated`, or not `ScriptedPuppet.IsActive`), the effect is taken off right after the game adds it. Thrown NPCs stay in the list after going down (still at most 64), so a later ragdoll is covered too. One second after each clearing, the body is checked again: the effect is taken off once more if it is back (log "still had NonInteractable 1 s after going down"), or the log says it is lootable.
+  - The removal is one call for up to 200 stacks (it was a loop of 200 single calls, because the removal takes effect a moment later).
 
 ### Throw consistency (2026-11-23, D54 to D56)
 

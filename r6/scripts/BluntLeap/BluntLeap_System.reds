@@ -45,6 +45,18 @@ public class BluntLeapSettleChargeCallback extends DelayCallback {
   }
 }
 
+// One second after a thrown NPC went down: is its body lootable?
+public class BluntLeapBodyCheckCallback extends DelayCallback {
+  public let system: wref<BluntLeapSystem>;
+  public let npc: wref<NPCPuppet>;
+
+  public func Call() -> Void {
+    if IsDefined(this.system) {
+      this.system.RecheckThrownBody(this.npc);
+    };
+  }
+}
+
 // Watches a charge we added. Tells the system the moment it becomes full,
 // and, while it fills, lets the system match its speed to Sandevistan. (The
 // hold state has no update of its own, and the game does not call the empty
@@ -1094,6 +1106,15 @@ public class BluntLeapSystem extends ScriptableSystem {
   // starts; if it dies before getting up, the recovery never runs, the effect
   // stays, and the body and its loot show no prompt. So for the NPCs we
   // threw, every stack is taken off when they die or are knocked out.
+  //
+  // "Alive" there means not dead, and blunt weapons knock out instead of
+  // killing: a knocked-out NPC counts as alive. When the throwing hit itself
+  // knocks the NPC out (or it is knocked out while still lying from an
+  // earlier throw), its ragdoll starts after it went down and puts the
+  // effect back on, with no recovery to come. Seen in game 2026-11-24: two
+  // bodies without a prompt, both thrown by the hit that took them down.
+  // So the effect is also taken off when a ragdoll starts on a thrown NPC
+  // that is already down, and checked once more a second later.
 
   public final func NoteThrown(id: EntityID) -> Void {
     if ArrayContains(this.m_thrownIds, id) {
@@ -1105,20 +1126,46 @@ public class BluntLeapSystem extends ScriptableSystem {
     ArrayPush(this.m_thrownIds, id);
   }
 
-  public final func ClearThrownBody(npc: ref<NPCPuppet>) -> Void {
+  // A thrown NPC is down (reason, for the log): take every stack of the
+  // effect off (it can stack to 200; the removal takes effect a moment
+  // later), and look again in a second. The NPC stays in the list, so a
+  // ragdoll starting later is handled too.
+  public final func ClearThrownBody(npc: ref<NPCPuppet>, reason: String) -> Void {
     let effect: TweakDBID = t"BaseStatusEffect.NonInteractable";
-    let effects: ref<StatusEffectSystem>;
-    let removed: Int32 = 0;
+    let had: Bool;
+    let check: ref<BluntLeapBodyCheckCallback>;
     if !IsDefined(npc) || !ArrayContains(this.m_thrownIds, npc.GetEntityID()) {
       return;
     };
-    ArrayRemove(this.m_thrownIds, npc.GetEntityID());
-    effects = GameInstance.GetStatusEffectSystem(npc.GetGame());
-    while StatusEffectSystem.ObjectHasStatusEffect(npc, effect) && removed < 200 {
-      effects.RemoveStatusEffect(npc.GetEntityID(), effect, 1u);
-      removed += 1;
+    had = StatusEffectSystem.ObjectHasStatusEffect(npc, effect);
+    if had {
+      GameInstance.GetStatusEffectSystem(npc.GetGame()).RemoveStatusEffect(npc.GetEntityID(), effect, 200u);
     };
-    this.Log("Thrown NPC down: " + IntToString(removed) + " NonInteractable taken off");
+    this.Log("Thrown NPC #" + BluntLeapSystem.ShortId(npc.GetEntityID()) + " " + reason + ": " + (had ? "NonInteractable taken off" : "no NonInteractable on it"));
+    check = new BluntLeapBodyCheckCallback();
+    check.system = this;
+    check.npc = npc;
+    GameInstance.GetDelaySystem(npc.GetGame()).DelayCallback(check, 1.0, false);
+  }
+
+  // A second after a thrown NPC went down. If it is still down and still has
+  // the effect, it is taken off again (and the log says so).
+  public final func RecheckThrownBody(npc: wref<NPCPuppet>) -> Void {
+    let effect: TweakDBID = t"BaseStatusEffect.NonInteractable";
+    if !IsDefined(npc) || (!npc.IsIncapacitated() && ScriptedPuppet.IsActive(npc)) {
+      return;
+    };
+    if StatusEffectSystem.ObjectHasStatusEffect(npc, effect) {
+      GameInstance.GetStatusEffectSystem(npc.GetGame()).RemoveStatusEffect(npc.GetEntityID(), effect, 200u);
+      this.Log("Thrown NPC #" + BluntLeapSystem.ShortId(npc.GetEntityID()) + " still had NonInteractable 1 s after going down: taken off again");
+    } else {
+      this.Log("Thrown NPC #" + BluntLeapSystem.ShortId(npc.GetEntityID()) + " 1 s after going down: no NonInteractable, lootable");
+    };
+  }
+
+  // The last 5 digits of an entity's hash, as the hit lines show them.
+  public final static func ShortId(id: EntityID) -> String {
+    return StrRight(ToString(EntityID.GetHash(id)), 5);
   }
 
   // ---------------------------------------------------- Gorilla Arms charge
