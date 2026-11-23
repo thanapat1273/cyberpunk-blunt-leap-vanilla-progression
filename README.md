@@ -16,14 +16,14 @@ Version 1.2.1. Played and tested in game (2026-11-22 to 24): the leap with blunt
 | Thunder Breaker | Stronger leap on a full charge: longer and faster leap, EMP on a crit, send the enemy flying or stagger them, hit stop, full-charge sound, flash and rumble |
 | Perks | Two perks in the Body tree with the game's look, icons, texts and videos; four unlock rules; the Dash requirement with a Dash box on the perk screen; automatic refunds |
 
-Not confirmed in game yet: the "Partial" value of "Charge speed under Sandevistan" since its fix in 1.2.0, and the quicker (0.1 s) check of thrown bodies in 1.2.1 (the 1 s check it adds to was tested).
+Not confirmed in game yet: the "Partial" value of "Charge speed under Sandevistan" since its fix in 1.2.0.
 
 The full design is in [SPEC.md](SPEC.md). The game facts behind it are in [RESEARCH.md](RESEARCH.md).
 
 ## Changes
 
 **1.2.1** (2026-11-24)
-- Fixed: enemies sent flying who died before getting up left bodies whose loot could not be picked up (no loot prompt). This includes enemies knocked out by the same hit that sends them flying, and enemies killed by hitting a wall or the ground after being thrown. The game can leave a body killed by an impact (also a car) with no loot and no pick-up, because its AI state never becomes Dead; the mod sets it to Dead a second after the death, for every NPC.
+- Fixed: enemies sent flying who died before getting up left bodies whose loot could not be picked up (no loot prompt). This includes enemies knocked out by the same hit that sends them flying, and enemies killed by hitting a wall or the ground after being thrown. The game can leave a body killed by an impact (also a car) with no loot and no pick-up, because it sets the body's AI state back from Dead to Relaxed a moment after the death; the mod watches each dead NPC's AI state and keeps it Dead, for every NPC.
 - Sending flying is more consistent: an enemy is pushed at most once per leap (a swing that hit it twice could throw it 20 to 50 m), and enemies the game says cannot be knocked down (drones, mechs, Berserk) are no longer given a tiny push; they are left to the game.
 - Thunder Breaker with Gorilla Arms now ends with the leap's punch, so quick follow-up punches no longer throw.
 - Enemies damaged by Thunder Breaker's EMP blast are now staggered too (when the game allows it: not if they resist staggers or are Berserk).
