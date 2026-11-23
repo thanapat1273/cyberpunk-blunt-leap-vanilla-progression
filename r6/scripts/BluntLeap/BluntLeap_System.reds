@@ -61,14 +61,16 @@ public class BluntLeapBodyCheckCallback extends DelayCallback {
   }
 }
 
-// One second after an NPC died: is its AI state Dead? (BluntLeapSystem.EnsureDeadState)
+// A moment after an NPC died (after, in seconds): is its AI state Dead?
+// (BluntLeapSystem.EnsureDeadState)
 public class BluntLeapDeadStateCallback extends DelayCallback {
   public let system: wref<BluntLeapSystem>;
   public let npc: wref<NPCPuppet>;
+  public let after: Float;
 
   public func Call() -> Void {
     if IsDefined(this.system) {
-      this.system.EnsureDeadState(this.npc);
+      this.system.EnsureDeadState(this.npc, this.after);
     };
   }
 }
@@ -1307,13 +1309,24 @@ public class BluntLeapSystem extends ScriptableSystem {
     };
   }
 
-  // Any NPC died (ScriptedPuppet.OnDied): its AI state is checked a second
-  // later (EnsureDeadState).
+  // Any NPC died (ScriptedPuppet.OnDied): its AI state is checked 1, 3, 8
+  // and 20 s later (EnsureDeadState). Not only once: in the first test with
+  // a single check at 1 s, every state was already Dead or Unconscious at
+  // that moment and a few bodies were still stuck, so the state may change
+  // again afterwards (for example when the AI's ragdoll behaviour ends).
   public final func CheckDeadState(npc: ref<NPCPuppet>) -> Void {
+    this.ScheduleDeadState(npc, 1.0);
+    this.ScheduleDeadState(npc, 3.0);
+    this.ScheduleDeadState(npc, 8.0);
+    this.ScheduleDeadState(npc, 20.0);
+  }
+
+  private final func ScheduleDeadState(npc: ref<NPCPuppet>, after: Float) -> Void {
     let callback: ref<BluntLeapDeadStateCallback> = new BluntLeapDeadStateCallback();
     callback.system = this;
     callback.npc = npc;
-    GameInstance.GetDelaySystem(npc.GetGame()).DelayCallback(callback, 1.0, false);
+    callback.after = after;
+    GameInstance.GetDelaySystem(npc.GetGame()).DelayCallback(callback, after, false);
   }
 
   // The body interactions of an NPC (loot, pick up / carry; also the
@@ -1323,28 +1336,36 @@ public class BluntLeapSystem extends ScriptableSystem {
   // 2026-11-24). It holds if the NPC's AI high-level state (the PuppetState
   // blackboard) is Unconscious or Dead, or the NPC is Defeated or hacked by
   // a nanowire. An NPC killed by a ragdoll impact (a wall or a fall after a
-  // throw, a car: a known game bug) can die without its AI state ever
-  // becoming Dead, and its body then offers no interaction at all, no loot
+  // throw, a car: a known game bug) can be left without its AI state
+  // being Dead, and its body then offers no interaction at all, no loot
   // and no pick-up, although it is dead with loot inside (seen on every
-  // such body in the wall-kill test, 2026-11-24). So a second after any NPC
-  // dies, if its state is still neither Dead nor Unconscious, it is set to
-  // Dead on that blackboard, where the condition reads it. Ordinary deaths
-  // are Dead by then and are not touched. For all NPCs, as the game bug is
-  // not limited to the ones this mod throws.
+  // such body in the wall-kill test, 2026-11-24). So after any NPC dies
+  // (checked 1, 3, 8 and 20 s later), if its state is neither Dead nor
+  // Unconscious, it is set to Dead on that blackboard, where the condition
+  // reads it. Ordinary deaths are Dead and are not touched. For all NPCs,
+  // as the game bug is not limited to the ones this mod throws. For thrown
+  // NPCs the state seen at each check is logged (with the log on).
   //
   // (The Nexus mod "Impact Kill Looting Fix" fixes the same bug by changing
   // that condition to PuppetIncapacitatedPrereq in the two files. Wrapping
   // NPCIncapacitatedPrereq.IsFulfilled was tried first: it overrides a
   // native function and keeps its native name, so redscript cannot wrap or
   // replace it.)
-  public final func EnsureDeadState(npc: wref<NPCPuppet>) -> Void {
+  public final func EnsureDeadState(npc: wref<NPCPuppet>, after: Float) -> Void {
     let state: gamedataNPCHighLevelState;
     let board: ref<IBlackboard>;
+    let name: String;
+    let thrown: Bool;
     if !IsDefined(npc) || !npc.IsDead() {
       return;
     };
     state = npc.GetHighLevelStateFromBlackboard();
+    name = EnumValueToString("gamedataNPCHighLevelState", Cast<Int64>(EnumInt(state)));
+    thrown = this.IsThrownNpc(npc.GetEntityID());
     if Equals(state, gamedataNPCHighLevelState.Dead) || Equals(state, gamedataNPCHighLevelState.Unconscious) {
+      if thrown {
+        this.Log("Thrown NPC #" + BluntLeapSystem.ShortId(npc.GetEntityID()) + " " + FloatToStringPrec(after, 0) + " s after its death: AI state " + name);
+      };
       return;
     };
     board = npc.GetPuppetStateBlackboard();
@@ -1352,7 +1373,7 @@ public class BluntLeapSystem extends ScriptableSystem {
       return;
     };
     board.SetInt(GetAllBlackboardDefs().PuppetState.HighLevel, EnumInt(gamedataNPCHighLevelState.Dead));
-    this.Log("NPC #" + BluntLeapSystem.ShortId(npc.GetEntityID()) + (this.IsThrownNpc(npc.GetEntityID()) ? " (thrown)" : "") + " died but its AI state was " + EnumValueToString("gamedataNPCHighLevelState", Cast<Int64>(EnumInt(state))) + " a second later: set to Dead, so its body can be looted and picked up");
+    this.Log("NPC #" + BluntLeapSystem.ShortId(npc.GetEntityID()) + (thrown ? " (thrown)" : "") + " " + FloatToStringPrec(after, 0) + " s after its death: AI state " + name + ", set to Dead, so its body can be looted and picked up");
   }
 
   public final func IsThrownNpc(id: EntityID) -> Bool {
