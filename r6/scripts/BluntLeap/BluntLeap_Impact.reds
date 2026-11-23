@@ -56,6 +56,7 @@ public abstract class BluntLeapImpact {
       return;
     };
     if Equals(GameObject.GetAttitudeTowards(target, player), EAIAttitude.AIA_Friendly) {
+      system.Log(label + ": left alone, the target counts as friendly to V");
       return;
     };
 
@@ -240,4 +241,37 @@ protected func OnIncapacitated() -> Void {
   if IsDefined(system) {
     system.ClearThrownBody(this);
   };
+}
+
+// For the log only (no change in play): every hit the game processes, from V
+// with a blunt weapon, within 3 s of a stronger leap's start. It runs right
+// after the hit-reaction stage callbacks (where the Thunder Breaker effector
+// runs), so a "Game hit" line without a "Hit #" line before it is a hit the
+// effector did not see; the line says what kind of hit it was.
+@wrapMethod(DamageSystem)
+private func ProcessHitReaction(hitEvent: ref<gameHitEvent>) -> Void {
+  let system: ref<BluntLeapSystem>;
+  let player: ref<PlayerPuppet>;
+  let target: ref<NPCPuppet>;
+  let weapon: ref<WeaponObject>;
+  let since: Float;
+  wrappedMethod(hitEvent);
+  if !IsDefined(hitEvent) || !IsDefined(hitEvent.attackData) {
+    return;
+  };
+  player = hitEvent.attackData.GetInstigator() as PlayerPuppet;
+  target = hitEvent.target as NPCPuppet;
+  weapon = hitEvent.attackData.GetWeapon();
+  if !IsDefined(player) || !IsDefined(target) || !IsDefined(weapon) || !WeaponObject.IsBlunt(weapon.GetItemID()) {
+    return;
+  };
+  system = BluntLeapSystem.Get(player.GetGame());
+  if !IsDefined(system) || !system.Settings().debugLog {
+    return;
+  };
+  since = system.SinceStrongStart();
+  if since < 0.0 || since > 3.0 {
+    return;
+  };
+  system.Log("Game hit +" + FloatToStringPrec(since, 2) + " s, " + TDBID.ToStringDEBUG(target.GetRecordID()) + ", attack " + EnumValueToString("gamedataAttackType", Cast<Int64>(EnumInt(hitEvent.attackData.GetAttackType()))) + ", attitude " + EnumValueToString("EAIAttitude", Cast<Int64>(EnumInt(GameObject.GetAttitudeTowards(target, player)))) + ", in combat " + ToString(NPCPuppet.IsInCombat(target)) + ", Thunder Breaker armed " + ToString(system.StrongLeapArmed()));
 }

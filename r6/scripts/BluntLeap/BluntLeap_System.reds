@@ -412,6 +412,14 @@ public class BluntLeapSystem extends ScriptableSystem {
     return true;
   }
 
+  // For the log: seconds since the last stronger leap started (-1 if none).
+  public final func SinceStrongStart() -> Float {
+    if this.m_strongStart <= 0.0 {
+      return -1.0;
+    };
+    return this.Now() - this.m_strongStart;
+  }
+
   // For the log: "Hit #n +t s" for a hit during the stronger leap.
   public final func NextStrongHitLabel() -> String {
     this.m_strongHits += 1;
