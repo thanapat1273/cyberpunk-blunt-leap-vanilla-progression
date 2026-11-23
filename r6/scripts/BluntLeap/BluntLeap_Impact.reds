@@ -96,6 +96,11 @@ public abstract class BluntLeapImpact {
       chance = heavy ? settings.launchChanceHeavy : settings.launchChance;
       force = settings.launchForce;
     };
+    if system.WallKillTest() {
+      // Wall-kill test mode (CET): always a throw, with the test's force.
+      chance = 100.0;
+      force = system.WallKillTestForce();
+    };
     if !exempt && RandRangeF(0.0, 100.0) < chance {
       // One throw per enemy per leap (a second hit on it adds nothing).
       if system.TakeThrow(target.GetEntityID()) {
@@ -133,6 +138,22 @@ public abstract class BluntLeapImpact {
     let threshold: Float = GameInstance.GetStatsSystem(target.GetGame()).GetStatValue(Cast<StatsObjectID>(target.GetEntityID()), gamedataStatType.KnockdownDamageThresholdImpulse);
     let id: String = ToString(EntityID.GetHash(target.GetEntityID()));
     return TDBID.ToStringDEBUG(target.GetRecordID()) + " #" + StrRight(id, 5) + ", threshold " + FloatToStringPrec(threshold, 0) + (BluntLeapImpact.IsHeavy(target) ? ", heavy" : "") + ", " + EnumValueToString("gamedataItemType", Cast<Int64>(EnumInt(WeaponObject.GetWeaponType(weapon.GetItemID()))));
+  }
+
+  // Wall-kill test mode: the throwing hit takes at most half of the health
+  // left, and 0.05 s later (before the impact) the enemy is left with one
+  // health point (BluntLeapSystem.LeaveOneHealth).
+  private final static func SpareForTest(system: ref<BluntLeapSystem>, target: ref<NPCPuppet>, hitEvent: ref<gameHitEvent>) -> Void {
+    let health: Float = GameInstance.GetStatPoolsSystem(target.GetGame()).GetStatPoolValue(Cast<StatsObjectID>(target.GetEntityID()), gamedataStatPoolType.Health, false);
+    let damage: Float = hitEvent.attackComputed.GetTotalAttackValue(gamedataStatPoolType.Health);
+    let callback: ref<BluntLeapLowHealthCallback>;
+    if damage > 0.0 && health > 0.0 && damage > health * 0.5 {
+      hitEvent.attackComputed.MultAttackValue(health * 0.5 / damage);
+    };
+    callback = new BluntLeapLowHealthCallback();
+    callback.system = system;
+    callback.npc = target;
+    GameInstance.GetDelaySystem(target.GetGame()).DelayCallback(callback, 0.05, false);
   }
 
   // The game's heavy enemy types.
@@ -255,6 +276,9 @@ public abstract class BluntLeapImpact {
     // Its body must stay lootable if it dies before getting up
     // (BluntLeapSystem.ClearThrownBody).
     system.NoteThrown(target.GetEntityID());
+    if system.WallKillTest() {
+      BluntLeapImpact.SpareForTest(system, target, hitEvent);
+    };
     system.Log(label + ": " + what + ", force " + FloatToStringPrec(impulse, 0) + ", side " + FloatToStringPrec(side, 1) + ", lift " + FloatToStringPrec(lift, 1));
   }
 }
@@ -296,7 +320,7 @@ protected func OnDied() -> Void {
   if IsDefined(npc) {
     system = BluntLeapSystem.Get(this.GetGame());
     if IsDefined(system) {
-      system.ClearThrownBody(npc, (late ? (knockedOut ? "died after going down (it was knocked out)" : "died after going down (it was not knocked out)") : "died") + (IsDefined(npc.GetKiller() as PlayerPuppet) ? ", kill credited to V" : ", kill NOT credited to V"), true);
+      system.ClearThrownBody(npc, (system.DiedByImpact(npc.GetEntityID()) ? "died from its impact (wall or ground)" : "died") + (late ? (knockedOut ? " after going down (it was knocked out)" : " after going down (it was not knocked out)") : "") + (IsDefined(npc.GetKiller() as PlayerPuppet) ? ", kill credited to V" : ", kill NOT credited to V"), true);
     };
   };
 }
@@ -308,6 +332,18 @@ public func BluntLeapRefreshLoot() -> Bool {
   CachedBoolValue.SetDirty(this.m_isActiveCached);
   this.UpdateLootInteraction();
   return !this.IsActive() && IsDefined(this.m_inventoryComponent) && this.m_inventoryComponent.IsAccessible();
+}
+
+// A ragdolling body hit something hard: the game makes it an attack on the
+// NPC (its "ragdoll impact"). Noted for thrown NPCs, so a death right after
+// it reads "died from its impact".
+@wrapMethod(NPCPuppet)
+protected cb func OnStartRagdollDamageEvent(inEvent: ref<StartRagdollDamageEvent>) -> Bool {
+  let system: ref<BluntLeapSystem> = BluntLeapSystem.Get(this.GetGame());
+  if IsDefined(system) {
+    system.NoteRagdollImpact(this.GetEntityID());
+  };
+  return wrappedMethod(inEvent);
 }
 
 // V is the instigator of the ragdoll this mod starts (see Launch). Read by
