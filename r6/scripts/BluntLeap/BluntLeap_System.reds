@@ -51,10 +51,11 @@ public class BluntLeapBodyCheckCallback extends DelayCallback {
   public let system: wref<BluntLeapSystem>;
   public let npc: wref<NPCPuppet>;
   public let after: Float;
+  public let died: Bool;
 
   public func Call() -> Void {
     if IsDefined(this.system) {
-      this.system.RecheckThrownBody(this.npc, this.after);
+      this.system.RecheckThrownBody(this.npc, this.after, this.died);
     };
   }
 }
@@ -126,6 +127,12 @@ public class BluntLeapSystem extends ScriptableSystem {
   // NPCs this mod sent flying (newest last, at most 64), so their bodies can
   // be made lootable again when they die (ClearThrownBody).
   private let m_thrownIds: array<EntityID>;
+  // Thrown NPCs that died since the save was loaded, newest last, at most
+  // 10: who, when (sim time), and how (after going down or not). For the CET
+  // report (ThrownDeathReport) and the on-screen message.
+  private let m_diedIds: array<EntityID>;
+  private let m_diedTimes: array<Float>;
+  private let m_diedTexts: array<String>;
 
   // The melee crosshair now on screen (its bar shows our charge), and
   // whether a strong attack is being held.
@@ -1146,7 +1153,7 @@ public class BluntLeapSystem extends ScriptableSystem {
   // effect off (it can stack to 200; the removal takes effect a moment
   // later), and look again in a second. The NPC stays in the list, so a
   // ragdoll starting later is handled too.
-  public final func ClearThrownBody(npc: ref<NPCPuppet>, reason: String) -> Void {
+  public final func ClearThrownBody(npc: ref<NPCPuppet>, reason: String, opt died: Bool) -> Void {
     let effect: TweakDBID = t"BaseStatusEffect.NonInteractable";
     let had: Bool;
     let check: ref<BluntLeapBodyCheckCallback>;
@@ -1173,7 +1180,58 @@ public class BluntLeapSystem extends ScriptableSystem {
     check.system = this;
     check.npc = npc;
     check.after = 2.5;
+    check.died = died;
     GameInstance.GetDelaySystem(npc.GetGame()).DelayCallback(check, 2.5, false);
+    if died {
+      this.NoteThrownDeath(npc.GetEntityID(), reason);
+    };
+  }
+
+  // A thrown NPC died: remembered for the CET report (at most 10, newest
+  // last).
+  private final func NoteThrownDeath(id: EntityID, reason: String) -> Void {
+    if ArraySize(this.m_diedIds) >= 10 {
+      ArrayErase(this.m_diedIds, 0);
+      ArrayErase(this.m_diedTimes, 0);
+      ArrayErase(this.m_diedTexts, 0);
+    };
+    ArrayPush(this.m_diedIds, id);
+    ArrayPush(this.m_diedTimes, this.Now());
+    ArrayPush(this.m_diedTexts, reason);
+  }
+
+  // For the CET console (tools/cet_thrown_deaths.lua): the last thrown NPCs
+  // that died since the save was loaded, with how long ago, how they died,
+  // and what the game's loot check says for each body now.
+  public final func ThrownDeathReport() -> String {
+    let text: String;
+    let i: Int32 = ArraySize(this.m_diedIds) - 1;
+    let npc: ref<NPCPuppet>;
+    let now: String;
+    if i < 0 {
+      return "Battering Ram: no thrown enemy has died since the save was loaded.";
+    };
+    text = "Battering Ram: thrown enemies that died (newest first):";
+    while i >= 0 {
+      npc = GameInstance.FindEntityByID(this.GetGameInstance(), this.m_diedIds[i]) as NPCPuppet;
+      if IsDefined(npc) {
+        now = npc.BluntLeapRefreshLoot() ? "loot prompt ON" : "loot prompt OFF";
+      } else {
+        now = "body no longer loaded";
+      };
+      text += "\n  #" + BluntLeapSystem.ShortId(this.m_diedIds[i]) + ", " + FloatToStringPrec(this.Now() - this.m_diedTimes[i], 0) + " s ago, " + this.m_diedTexts[i] + ": " + now;
+      i -= 1;
+    };
+    return text;
+  }
+
+  // A short message on screen (only with "Write a log" on).
+  private final func ScreenMessage(text: String) -> Void {
+    let msg: SimpleScreenMessage;
+    msg.isShown = true;
+    msg.duration = 5.0;
+    msg.message = text;
+    GameInstance.GetBlackboardSystem(this.GetGameInstance()).Get(GetAllBlackboardDefs().UI_Notifications).SetVariant(GetAllBlackboardDefs().UI_Notifications.OnscreenMessage, ToVariant(msg), true);
   }
 
   // 0.1 s and 1 s after a thrown NPC went down (after). If it is still down
@@ -1183,7 +1241,7 @@ public class BluntLeapSystem extends ScriptableSystem {
   // 2.5 s after: the game's loot-prompt check is run again (it gives the
   // prompt only if the NPC no longer counts as active and its inventory can
   // be opened, as when the game runs it itself).
-  public final func RecheckThrownBody(npc: wref<NPCPuppet>, after: Float) -> Void {
+  public final func RecheckThrownBody(npc: wref<NPCPuppet>, after: Float, died: Bool) -> Void {
     let effect: TweakDBID = t"BaseStatusEffect.NonInteractable";
     let lootable: Bool;
     if !IsDefined(npc) || (!npc.IsIncapacitated() && ScriptedPuppet.IsActive(npc)) {
@@ -1191,7 +1249,10 @@ public class BluntLeapSystem extends ScriptableSystem {
     };
     if after >= 2.0 {
       lootable = npc.BluntLeapRefreshLoot();
-      this.Log("Thrown NPC #" + BluntLeapSystem.ShortId(npc.GetEntityID()) + " " + FloatToStringPrec(after, 1) + " s after going down: loot prompt set again, " + (lootable ? "on" : "off") + " (dead " + ToString(npc.IsDead()) + ")");
+      this.Log("Thrown NPC #" + BluntLeapSystem.ShortId(npc.GetEntityID()) + " " + FloatToStringPrec(after, 1) + " s after going down: loot prompt set again, " + (lootable ? "on" : "off") + " (dead " + ToString(npc.IsDead()) + ")" + (died ? " [after its death]" : ""));
+      if died && this.Settings().debugLog {
+        this.ScreenMessage("Battering Ram: thrown enemy #" + BluntLeapSystem.ShortId(npc.GetEntityID()) + " died. Game loot check: " + (lootable ? "ON" : "OFF"));
+      };
       return;
     };
     if StatusEffectSystem.ObjectHasStatusEffect(npc, effect) {

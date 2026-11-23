@@ -269,16 +269,27 @@ protected func OnIncapacitated() -> Void {
 // down, including the loot prompt 2.5 s later: the game sets that prompt
 // only once, when the NPC first goes down, and an NPC thrown with a little
 // health left can go down first and die later (BluntLeapSystem.ClearThrownBody).
+//
+// Whether the NPC had already gone down before it died is read before the
+// game's death handling (for the log). With "Write a log" on, each thrown
+// NPC's death is shown on screen and listed by the CET report
+// (tools/cet_thrown_deaths.lua), so a body without a loot prompt can be
+// matched to it.
 @wrapMethod(ScriptedPuppet)
 protected func OnDied() -> Void {
-  let npc: ref<NPCPuppet>;
+  let npc: ref<NPCPuppet> = this as NPCPuppet;
   let system: ref<BluntLeapSystem>;
+  let late: Bool = false;
+  let knockedOut: Bool = false;
+  if IsDefined(npc) {
+    late = npc.IsIncapacitated();
+    knockedOut = ScriptedPuppet.IsDefeated(npc) || ScriptedPuppet.IsUnconscious(npc);
+  };
   wrappedMethod();
-  npc = this as NPCPuppet;
   if IsDefined(npc) {
     system = BluntLeapSystem.Get(this.GetGame());
     if IsDefined(system) {
-      system.ClearThrownBody(npc, "died");
+      system.ClearThrownBody(npc, late ? (knockedOut ? "died after going down (it was knocked out)" : "died after going down (it was not knocked out)") : "died", true);
     };
   };
 }
