@@ -140,16 +140,13 @@ public abstract class BluntLeapImpact {
     return TDBID.ToStringDEBUG(target.GetRecordID()) + " #" + StrRight(id, 5) + ", threshold " + FloatToStringPrec(threshold, 0) + (BluntLeapImpact.IsHeavy(target) ? ", heavy" : "") + ", " + EnumValueToString("gamedataItemType", Cast<Int64>(EnumInt(WeaponObject.GetWeaponType(weapon.GetItemID()))));
   }
 
-  // Wall-kill test mode: the throwing hit takes at most half of the health
-  // left, and 0.05 s later (before the impact) the enemy is left with one
-  // health point (BluntLeapSystem.LeaveOneHealth).
+  // Wall-kill test mode: 0.05 s after the throwing hit (before the impact)
+  // the enemy is left with one health point (BluntLeapSystem.LeaveOneHealth).
+  // The hit's own damage cannot be changed here: the game deals it before
+  // this stage of the hit. A hit that kills or knocks out on its own is
+  // logged as such.
   private final static func SpareForTest(system: ref<BluntLeapSystem>, target: ref<NPCPuppet>, hitEvent: ref<gameHitEvent>) -> Void {
-    let health: Float = GameInstance.GetStatPoolsSystem(target.GetGame()).GetStatPoolValue(Cast<StatsObjectID>(target.GetEntityID()), gamedataStatPoolType.Health, false);
-    let damage: Float = hitEvent.attackComputed.GetTotalAttackValue(gamedataStatPoolType.Health);
     let callback: ref<BluntLeapLowHealthCallback>;
-    if damage > 0.0 && health > 0.0 && damage > health * 0.5 {
-      hitEvent.attackComputed.MultAttackValue(health * 0.5 / damage);
-    };
     callback = new BluntLeapLowHealthCallback();
     callback.system = system;
     callback.npc = target;
@@ -344,6 +341,44 @@ protected cb func OnStartRagdollDamageEvent(inEvent: ref<StartRagdollDamageEvent
     system.NoteRagdollImpact(this.GetEntityID());
   };
   return wrappedMethod(inEvent);
+}
+
+// The damage of a ragdoll impact (a wall, the ground) is set here. If it
+// would kill an NPC this mod threw, it is cancelled and V's kill is dealt a
+// moment later instead (BluntLeapSystem.KillInsteadOfImpact): a kill by the
+// game's ragdoll impact leaves a body with no loot and no pick-up. The
+// "should die" mark the game sets for hard impacts is taken off too.
+@wrapMethod(DamageSystem)
+private func ProcessRagdollHit(hitEvent: ref<gameHitEvent>) -> Void {
+  let npc: ref<NPCPuppet>;
+  let system: ref<BluntLeapSystem>;
+  let health: Float;
+  let damage: Float;
+  wrappedMethod(hitEvent);
+  if !IsDefined(hitEvent as gameRagdollHitEvent) {
+    return;
+  };
+  npc = hitEvent.target as NPCPuppet;
+  if !IsDefined(npc) || npc.IsDead() {
+    return;
+  };
+  system = BluntLeapSystem.Get(npc.GetGame());
+  if !IsDefined(system) || !system.IsThrown(npc.GetEntityID()) {
+    return;
+  };
+  health = GameInstance.GetStatPoolsSystem(npc.GetGame()).GetStatPoolValue(Cast<StatsObjectID>(npc.GetEntityID()), gamedataStatPoolType.Health, false);
+  damage = hitEvent.attackComputed.GetTotalAttackValue(gamedataStatPoolType.Health);
+  if damage < health && !npc.IsAboutToDie() {
+    return;
+  };
+  hitEvent.attackComputed.SetAttackValue(0.0);
+  npc.BluntLeapCancelDeathMark();
+  system.KillInsteadOfImpact(npc, damage, health);
+}
+
+@addMethod(NPCPuppet)
+public func BluntLeapCancelDeathMark() -> Void {
+  this.m_shouldDie = false;
 }
 
 // V is the instigator of the ragdoll this mod starts (see Launch). Read by

@@ -61,6 +61,19 @@ public class BluntLeapBodyCheckCallback extends DelayCallback {
   }
 }
 
+// A thrown NPC's ragdoll impact would have killed it: V's kill is dealt a
+// moment later instead (see BluntLeapSystem.KillInsteadOfImpact).
+public class BluntLeapImpactKillCallback extends DelayCallback {
+  public let system: wref<BluntLeapSystem>;
+  public let npc: wref<NPCPuppet>;
+
+  public func Call() -> Void {
+    if IsDefined(this.system) {
+      this.system.FinishImpactKill(this.npc);
+    };
+  }
+}
+
 // Wall-kill test mode: just after the throwing hit, leave the NPC with one
 // health point (see BluntLeapSystem.SetWallKillTest).
 public class BluntLeapLowHealthCallback extends DelayCallback {
@@ -1295,6 +1308,37 @@ public class BluntLeapSystem extends ScriptableSystem {
     };
   }
 
+  public final func IsThrown(id: EntityID) -> Bool {
+    return ArrayContains(this.m_thrownIds, id);
+  }
+
+  // A thrown NPC's ragdoll impact would kill it (DamageSystem.ProcessRagdollHit,
+  // wrapped in BluntLeap_Impact.reds). A kill by the game's ragdoll impact,
+  // like a kill by a car, leaves a body with no interaction at all: no loot,
+  // no pick-up (a known game bug; seen in game 2026-11-24, every such body).
+  // The impact's damage has been cancelled; 0.05 s later the NPC's health is
+  // taken by V, the way bleeding kills, so it dies the ordinary way.
+  public final func KillInsteadOfImpact(npc: ref<NPCPuppet>, damage: Float, health: Float) -> Void {
+    let callback: ref<BluntLeapImpactKillCallback> = new BluntLeapImpactKillCallback();
+    callback.system = this;
+    callback.npc = npc;
+    GameInstance.GetDelaySystem(npc.GetGame()).DelayCallback(callback, 0.05, false);
+    this.Log("Thrown NPC #" + BluntLeapSystem.ShortId(npc.GetEntityID()) + ": its impact would kill it (damage " + FloatToStringPrec(damage, 1) + ", health " + FloatToStringPrec(health, 1) + "); V's kill instead");
+  }
+
+  public final func FinishImpactKill(npc: wref<NPCPuppet>) -> Void {
+    let pools: ref<StatPoolsSystem>;
+    let id: StatsObjectID;
+    let health: Float;
+    if !IsDefined(npc) || npc.IsDead() {
+      return;
+    };
+    pools = GameInstance.GetStatPoolsSystem(npc.GetGame());
+    id = Cast<StatsObjectID>(npc.GetEntityID());
+    health = pools.GetStatPoolValue(id, gamedataStatPoolType.Health, false);
+    pools.RequestChangingStatPoolValue(id, gamedataStatPoolType.Health, -(health + 1.0), GetPlayer(npc.GetGame()), false, false);
+  }
+
   // A thrown NPC's ragdoll hit something hard (NPCPuppet.OnStartRagdollDamageEvent).
   public final func NoteRagdollImpact(id: EntityID) -> Void {
     let i: Int32;
@@ -1323,8 +1367,9 @@ public class BluntLeapSystem extends ScriptableSystem {
   // Wall-kill test mode, from the CET console (tools/cet_wall_kill_test.lua).
   // On: every fully charged leap hit on an enemy that can be thrown throws
   // it (no stagger or small-push roll, alerted or not) with the given force
-  // (%), the hit cannot kill it, and right after the hit it is left with one
-  // health point, so its impact with a wall or the ground kills it. Not
+  // (%), and right after the hit it is left with one health point (if the
+  // hit itself did not take it down), so its impact with a wall or the
+  // ground kills it. Not
   // saved; off again after a load. Returns what it did, for the console.
   public final func SetWallKillTest(on: Bool, force: Float) -> String {
     let text: String;
