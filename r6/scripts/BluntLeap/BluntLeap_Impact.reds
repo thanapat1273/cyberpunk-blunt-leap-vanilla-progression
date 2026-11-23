@@ -303,6 +303,54 @@ public func BluntLeapRefreshLoot() -> Bool {
   return !this.IsActive() && IsDefined(this.m_inventoryComponent) && this.m_inventoryComponent.IsAccessible();
 }
 
+// For testing only, from the CET console (tools/cet_unstick.lua): a body
+// with no interaction at all (no loot, no pick-up) although the game's loot
+// check says it is lootable. Each step tries one of the game's own ways of
+// turning interactions on, so the step that brings the prompt back shows
+// what is stuck:
+//   1. the 'Loot' interaction layer on, directly;
+//   2. the body's interaction component off and on again;
+//   3. the end of the AI ragdoll behaviour (as when a ragdoll settles);
+//   4. NonInteractable added once and taken off again the game's way (a
+//      RemoveStatusEffectEvent half a second later), in case a count kept
+//      by the game is off.
+@addMethod(ScriptedPuppet)
+public func BluntLeapUnstick(step: Int32) -> String {
+  let npc: ref<NPCPuppet>;
+  let remove: ref<RemoveStatusEffectEvent>;
+  switch step {
+    case 1:
+      this.EnableInteraction(n"Loot", true);
+      return "step 1: 'Loot' interaction layer turned on";
+    case 2:
+      if !IsDefined(this.m_interactionComponent) {
+        return "step 2: this body has no interaction component";
+      };
+      this.m_interactionComponent.Toggle(false);
+      this.m_interactionComponent.Toggle(true);
+      return "step 2: interaction component turned off and on";
+    case 3:
+      npc = this as NPCPuppet;
+      if !IsDefined(npc) {
+        return "step 3: not an NPC";
+      };
+      npc.BluntLeapEndRagdollBehavior();
+      return "step 3: end of the ragdoll behaviour sent";
+    case 4:
+      StatusEffectHelper.ApplyStatusEffect(this, t"BaseStatusEffect.NonInteractable");
+      remove = new RemoveStatusEffectEvent();
+      remove.effectID = t"BaseStatusEffect.NonInteractable";
+      GameInstance.GetDelaySystem(this.GetGame()).DelayEvent(this, remove, 0.5, true);
+      return "step 4: NonInteractable added, and taken off the game's way in 0.5 s";
+  };
+  return "steps are 1 to 4";
+}
+
+@addMethod(NPCPuppet)
+public func BluntLeapEndRagdollBehavior() -> Void {
+  this.TriggerRagdollBehaviorEnd();
+}
+
 // A ragdoll starts. The game puts NonInteractable on an NPC that is not dead
 // at this point, and a knocked-out NPC is not dead. If this mod threw the NPC
 // and it is already down (the throwing hit knocked it out, or it was knocked
