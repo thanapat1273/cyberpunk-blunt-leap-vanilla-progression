@@ -386,7 +386,7 @@ public class BluntLeapSettings extends IScriptable {
   @runtimeProperty("ModSettings.category", "Thunder Breaker (full charge)")
   @runtimeProperty("ModSettings.category.order", "5")
   @runtimeProperty("ModSettings.displayName", "Stagger when not sent flying")
-  @runtimeProperty("ModSettings.description", "On: an enemy that is not sent flying is at least staggered, unless it resists staggers.")
+  @runtimeProperty("ModSettings.description", "On: an enemy that is not sent flying is at least staggered, unless it resists staggers. This includes enemies damaged by the EMP blast around the target.")
   public let stagger: Bool = true;
 
   @runtimeProperty("ModSettings.mod", "Battering Ram")

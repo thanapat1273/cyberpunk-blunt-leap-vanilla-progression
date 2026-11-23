@@ -359,6 +359,13 @@ Found from the log (207 Thunder Breaker leaps at force 20%) and the game's data 
 - **D, kept as it is:** the push goes in at the hit point, which makes each throw different, and the upward or downward lift follows the swing.
 - The research log stays: each Thunder Breaker hit writes its number, time, target, threshold, weapon and result; a blocked second push writes "already sent flying by this leap".
 
+### Enemies damaged by the EMP blast are staggered (2026-11-23, D57)
+
+- **Asked:** an enemy the swing misses but that still takes damage from the leap should be staggered, if the game lets it be (blocking, Berserk and so on).
+- **What can damage it:** every enemy the swing hits already goes through the hit effector (thrown, or a stagger is asked for). The only other damage from a Thunder Breaker leap is the EMP blast on a crit (3 m around the target). The effector's conditions take strong melee hits only, so EMP damage got no reaction from the mod: the Yinglong EMP it copies has hit reaction strength 1 to 2, usually a twitch.
+- **Fix:** the EMP's hit reaction strength is 2 to 2 (data file, and `Refresh` sets the minimum to 1 when "Stagger when not sent flying" is off). The game decides as for any hit. Melee and ranged hits are staggered only without stagger resistance, with a stagger threshold above 0 (Berserk and similar set it to 0), without a large power difference, and not within the timeout after a recent stagger or knockdown. So the struck enemy, just thrown or staggered, gets only a twitch from its own EMP. The blast is a Ranged attack (its base `BaseEMPExplosion`), so the game's "strong explosion" knockdown does not apply, and it cannot be blocked.
+- **Enemies neither hit by the swing nor inside the EMP take no damage from the leap,** so there is nothing for the game to react to: the game's hit area (a 25 cm box swept along the swing's arc, as long as the reach) decides who is hit.
+
 ### Not built
 
 - **Screen-edge pulse at full charge** (default Off in §5): no suitable game effect picked yet.

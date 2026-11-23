@@ -321,6 +321,16 @@ public class BluntLeapSystem extends ScriptableSystem {
     };
     if this.m_hasStronger {
       TweakDBManager.SetFlat(t"BluntLeap.EMP.range", ToVariant(settings.empRadius));
+      // Enemies the EMP blast damages (beside the one the swing hit) ask the
+      // game for a stagger, when "Stagger when not sent flying" is on: hit
+      // reaction strength 2 at least. The game still decides: resistances, a
+      // stagger threshold of 0 (Berserk and similar), a power difference, a
+      // recent stagger or knockdown (the struck enemy itself, just thrown or
+      // staggered, gets only a twitch). The blast copies the Yinglong EMP, a
+      // Ranged attack, so the game's "strong explosion" knockdown never
+      // applies. Off: the Yinglong's own 1 to 2 (usually a twitch).
+      TweakDBManager.SetFlat(t"BluntLeap.EMP.hitReactionSeverityMin", ToVariant(settings.stagger ? 2 : 1));
+      TweakDBManager.SetFlat(t"BluntLeap.EMP.hitReactionSeverityMax", ToVariant(2));
       TweakDBManager.UpdateRecord(t"BluntLeap.EMP");
       packages.ApplyPackage(player, player, t"BluntLeap.Impact");
     };

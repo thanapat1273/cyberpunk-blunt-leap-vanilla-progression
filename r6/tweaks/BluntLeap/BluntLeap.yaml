@@ -145,6 +145,10 @@ BluntLeap.EMP:
   $base: Attacks.YinglongEMP
   playerIncomingDamageMultiplier: 0.0
   range: 3.0
+  # Enemies the blast damages ask the game for a stagger (strength 2); the
+  # script lowers it to 1 when the setting "Stagger when not sent flying" is off.
+  hitReactionSeverityMin: 2
+  hitReactionSeverityMax: 2
   statModifiers:
     - BluntLeap.EMPDamage
 
