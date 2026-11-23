@@ -28,6 +28,7 @@ The full design is in [SPEC.md](SPEC.md). The game facts behind it are in [RESEA
 - Thunder Breaker with Gorilla Arms now ends with the leap's punch, so quick follow-up punches no longer throw.
 - Enemies damaged by Thunder Breaker's EMP blast are now staggered too (when the game allows it: not if they resist staggers or are Berserk).
 - Unalerted enemies (not in combat yet) have their own throw chance and force, and when the roll gives them a stagger, which the game does not show on them, they get a very small push instead. All adjustable in Mod Settings.
+- Fixed: after loading, the charge bar could show a leftover fill, and the first charge could wait a moment before filling.
 
 **1.2.0** (2026-11-23)
 - Gorilla Arms now charge by holding a strong attack (setting "Charge time: Gorilla Arms", 0.75 s), with the full-charge sound and rumble, so their leaps can be Thunder Breaker leaps. Before, they never charged: their own charge belongs to the relic perk, which this mod does not touch. No charge bar for Gorilla Arms.

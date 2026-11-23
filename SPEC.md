@@ -378,6 +378,17 @@ Found from the log (207 Thunder Breaker leaps at force 20%) and the game's data 
 - The one-push-per-enemy rule and the exemptions (bosses, MaxTac, massive, cannot be knocked down) apply to the small push too.
 - The diagnosis log ("Game hit" lines) shows "in combat" for every hit, so the reading can be checked.
 - 44 settings.
+- **Confirmed in game (diagnosis log):** the unalerted first enemy was "in combat false", with attitude Neutral, so the friendly rule was not the cause. The small push fired (force 48 at 4%). **Default raised to 6%** after testing (D59).
+
+### Charge bar on load, and the first charge (2026-11-23, D60)
+
+- **Seen in game:** after loading with a blunt weapon, the charge bar showed a fill (50 to 100%, maybe any). The first charge then waited 0.5 to 2 s before the bar started to fill.
+- **Causes, as far as the code shows:**
+  - our pool (`BluntLeap.ChargePool`) had no fill (regen) settings, so the engine's defaults applied. The game's own weapon charge pool sets them (`BaseStatPools.WeaponChargeRegen`: off until a hold, no start delay);
+  - on load (and on draw) the mod requests the pool and empties it at once, but the pool is added a moment later, so the emptying did nothing. An empty or unchanged pool sends no change for the bar to follow, so a leftover fill could stay on screen.
+- **Fix:**
+  - the pool has the game's fill settings: disabled until a hold, start delay 0, 150 per second, no delay on change;
+  - 0.5 s after a pool is added, `SettleCharge` empties it (unless a hold has started) and sets the crosshair's bar to the pool's real value. The crosshair controller is remembered when it appears. The log line "Charge pool settled: it held N%" shows what the pool held, to confirm the cause.
 
 ### Not built
 

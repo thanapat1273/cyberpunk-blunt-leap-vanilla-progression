@@ -32,6 +32,7 @@ protected cb func OnPreIntro() -> Bool {
     system = BluntLeapSystem.Get(weapon.GetGame());
     if IsDefined(system) {
       ourType = BluntLeapSystem.IsOurChargeType(weapon);
+      system.NoteCrosshair(this);
       ours = system.PrepareCharge(weapon);
       if ours {
         system.ClearCharge(weapon);
@@ -130,6 +131,7 @@ public func OnExit(stateContext: ref<StateContext>, scriptInterface: ref<StateGa
   system = BluntLeapSystem.Get(scriptInterface.executionOwner.GetGame());
   if IsDefined(system) {
     system.StopGorillaCharge();
+    system.NoteHoldEnded();
   };
   if !this.m_clearWeaponCharge {
     return;
@@ -155,6 +157,7 @@ public func OnForcedExit(stateContext: ref<StateContext>, scriptInterface: ref<S
     if IsDefined(system) {
       system.ClearCharge(weapon);
       system.StopGorillaCharge();
+      system.NoteHoldEnded();
     };
   };
 }

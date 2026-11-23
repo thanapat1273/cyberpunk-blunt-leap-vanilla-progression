@@ -66,6 +66,8 @@ With Stronger Leap owned, or "Always charged" on, draw the weapon again first.
 | 4.5 | Same, fully charged | Leap |
 | 4.6 | Stun baton | Its own charge bar and timing, unchanged |
 | 4.7 | After any attack | The bar is empty again |
+| 4.8 | Load a save with a blunt weapon in hand | The charge bar is empty half a second after loading (log: "Charge pool settled: it held N%") |
+| 4.9 | The first charge after loading | The bar starts filling at once, with no wait |
 
 ## 5. Stronger leap (fully charged)
 

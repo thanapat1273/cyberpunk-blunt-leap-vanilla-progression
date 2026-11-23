@@ -413,7 +413,7 @@ public class BluntLeapSettings extends IScriptable {
   @runtimeProperty("ModSettings.step", "1.0")
   @runtimeProperty("ModSettings.min", "0.0")
   @runtimeProperty("ModSettings.max", "50.0")
-  public let unalertedStaggerForce: Float = 4.0;
+  public let unalertedStaggerForce: Float = 6.0;
 
   @runtimeProperty("ModSettings.mod", "Battering Ram")
   @runtimeProperty("ModSettings.category", "Thunder Breaker (full charge)")

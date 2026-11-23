@@ -92,6 +92,18 @@ BluntLeap.ChargePool:
   stat: BaseStats.Charge
   initialValue: 0.0
   savable: false
+  # The fill, as the game's own weapon charge pool has it
+  # (BaseStatPools.WeaponChargeRegen): off until a hold starts it, no start
+  # delay. Without it the engine's defaults applied, and the first charge
+  # could wait a moment before filling.
+  regen:
+    $type: PoolValueModifier
+    enabled: false
+    rangeBegin: 0.0
+    rangeEnd: 100.0
+    startDelay: 0.0
+    valuePerSec: 150.0
+    delayOnChange: false
   decay:
     $type: PoolValueModifier
     enabled: true

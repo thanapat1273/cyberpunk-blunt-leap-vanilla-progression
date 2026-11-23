@@ -31,6 +31,19 @@ public class BluntLeapGorillaChargeCallback extends DelayCallback {
   }
 }
 
+// A charge pool was just added: settle it once it exists (see
+// BluntLeapSystem.SettleCharge).
+public class BluntLeapSettleChargeCallback extends DelayCallback {
+  public let system: wref<BluntLeapSystem>;
+  public let weapon: wref<WeaponObject>;
+
+  public func Call() -> Void {
+    if IsDefined(this.system) {
+      this.system.SettleCharge(this.weapon);
+    };
+  }
+}
+
 // Watches a charge we added. Tells the system the moment it becomes full,
 // and, while it fills, lets the system match its speed to Sandevistan. (The
 // hold state has no update of its own, and the game does not call the empty
@@ -97,6 +110,11 @@ public class BluntLeapSystem extends ScriptableSystem {
   // NPCs this mod sent flying (newest last, at most 64), so their bodies can
   // be made lootable again when they die (ClearThrownBody).
   private let m_thrownIds: array<EntityID>;
+
+  // The melee crosshair now on screen (its bar shows our charge), and
+  // whether a strong attack is being held.
+  private let m_crosshair: wref<CrosshairGameController_Melee>;
+  private let m_holding: Bool;
 
   // A stronger leap is on its way: its hit gets the extra effects until this time.
   private let m_strongUntil: Float;
@@ -575,6 +593,7 @@ public class BluntLeapSystem extends ScriptableSystem {
     let maxMod: ref<gameStatModifierData>;
     let bonusMod: ref<gameStatModifierData>;
     let listener: ref<BluntLeapChargeListener>;
+    let settle: ref<BluntLeapSettleChargeCallback>;
 
     if !BluntLeapSystem.IsOurChargeType(weapon) {
       return false;
@@ -618,6 +637,12 @@ public class BluntLeapSystem extends ScriptableSystem {
       };
       if !hasPool {
         pools.RequestAddingStatPool(statsId, t"BluntLeap.ChargePool", true);
+        // The pool is added a moment later, so emptying it now does nothing;
+        // settle it once it exists.
+        settle = new BluntLeapSettleChargeCallback();
+        settle.system = this;
+        settle.weapon = weapon;
+        GameInstance.GetDelaySystem(game).DelayCallback(settle, 0.5, false);
       };
       listener = new BluntLeapChargeListener();
       listener.system = this;
@@ -711,6 +736,7 @@ public class BluntLeapSystem extends ScriptableSystem {
   // rate (StartPool).
   public final func NoteChargeStarted(weapon: wref<WeaponObject>) -> Void {
     let index: Int32;
+    this.m_holding = true;
     if !IsDefined(weapon) {
       return;
     };
@@ -720,6 +746,38 @@ public class BluntLeapSystem extends ScriptableSystem {
     };
     this.m_loggedDilation = -1.0;
     this.m_loggedBlocked = false;
+  }
+
+  public final func NoteHoldEnded() -> Void {
+    this.m_holding = false;
+  }
+
+  public final func NoteCrosshair(crosshair: wref<CrosshairGameController_Melee>) -> Void {
+    this.m_crosshair = crosshair;
+  }
+
+  // Half a second after a charge pool was added (a save loaded, a weapon
+  // drawn): the pool exists now. Empty it unless a hold has started, and set
+  // the crosshair's bar to the pool's real value. Emptying it when it was
+  // requested did nothing (it did not exist yet), and an empty pool sends no
+  // change for the bar to follow, so the bar could show a leftover fill.
+  public final func SettleCharge(weapon: wref<WeaponObject>) -> Void {
+    let pools: ref<StatPoolsSystem>;
+    let statsId: StatsObjectID;
+    let before: Float;
+    if !IsDefined(weapon) || !this.OwnsChargeOf(weapon) {
+      return;
+    };
+    pools = GameInstance.GetStatPoolsSystem(weapon.GetGame());
+    statsId = Cast<StatsObjectID>(weapon.GetEntityID());
+    before = pools.GetStatPoolValue(statsId, gamedataStatPoolType.WeaponCharge, true);
+    if !this.m_holding {
+      this.ClearCharge(weapon);
+    };
+    if IsDefined(this.m_crosshair) {
+      this.m_crosshair.SetChargeScale(this.m_holding ? before : 0.0);
+    };
+    this.Log("Charge pool settled: it held " + FloatToStringPrec(before, 0) + "%" + (this.m_holding ? " (a hold had started, kept)" : ", emptied"));
   }
 
   // How slowly Sandevistan makes the world run: 0 to 1, where 1 means it is
