@@ -1120,6 +1120,17 @@ public class BluntLeapSystem extends ScriptableSystem {
   // starts (it was not there yet when looked for right away: seen in game
   // 2026-11-24, a knocked-out body moved again over a minute later, and the
   // 1 s check took it off), so the body is checked again 0.1 s and 1 s later.
+  //
+  // The loot prompt itself (the 'Loot' interaction) is set by the game once:
+  // 2 s after the first time an NPC goes down (ScriptedPuppet.OnIncapacitated,
+  // EnableLootInteractionWithDelay), on if it no longer counts as active and
+  // its inventory can be opened (UpdateLootInteraction). Going down again or
+  // dying later stops early ("already went down"), so the prompt is never set
+  // again. A thrown NPC can go down while still alive with little health and
+  // die later, for example hitting a wall. Seen in game 2026-11-24 (CET check
+  // of the body): dead, not active, loot inside, no NonInteractable, no
+  // status effects, and no prompt. So for NPCs this mod threw, the game's
+  // own check is run again 2.5 s after they go down and after they die.
 
   public final func NoteThrown(id: EntityID) -> Void {
     if ArrayContains(this.m_thrownIds, id) {
@@ -1157,14 +1168,30 @@ public class BluntLeapSystem extends ScriptableSystem {
     check.npc = npc;
     check.after = 1.0;
     GameInstance.GetDelaySystem(npc.GetGame()).DelayCallback(check, 1.0, false);
+    // After the game's own 2 s loot delay: set the loot prompt again.
+    check = new BluntLeapBodyCheckCallback();
+    check.system = this;
+    check.npc = npc;
+    check.after = 2.5;
+    GameInstance.GetDelaySystem(npc.GetGame()).DelayCallback(check, 2.5, false);
   }
 
   // 0.1 s and 1 s after a thrown NPC went down (after). If it is still down
   // and has the effect, it is taken off again. The log says so; the 1 s
   // check also says when the body is lootable.
+  //
+  // 2.5 s after: the game's loot-prompt check is run again (it gives the
+  // prompt only if the NPC no longer counts as active and its inventory can
+  // be opened, as when the game runs it itself).
   public final func RecheckThrownBody(npc: wref<NPCPuppet>, after: Float) -> Void {
     let effect: TweakDBID = t"BaseStatusEffect.NonInteractable";
+    let lootable: Bool;
     if !IsDefined(npc) || (!npc.IsIncapacitated() && ScriptedPuppet.IsActive(npc)) {
+      return;
+    };
+    if after >= 2.0 {
+      lootable = npc.BluntLeapRefreshLoot();
+      this.Log("Thrown NPC #" + BluntLeapSystem.ShortId(npc.GetEntityID()) + " " + FloatToStringPrec(after, 1) + " s after going down: loot prompt set again, " + (lootable ? "on" : "off") + " (dead " + ToString(npc.IsDead()) + ")");
       return;
     };
     if StatusEffectSystem.ObjectHasStatusEffect(npc, effect) {

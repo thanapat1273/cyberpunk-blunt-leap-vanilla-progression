@@ -265,6 +265,33 @@ protected func OnIncapacitated() -> Void {
   };
 }
 
+// An NPC dies. If this mod threw it, its body is checked as when it went
+// down, including the loot prompt 2.5 s later: the game sets that prompt
+// only once, when the NPC first goes down, and an NPC thrown with a little
+// health left can go down first and die later (BluntLeapSystem.ClearThrownBody).
+@wrapMethod(ScriptedPuppet)
+protected func OnDied() -> Void {
+  let npc: ref<NPCPuppet>;
+  let system: ref<BluntLeapSystem>;
+  wrappedMethod();
+  npc = this as NPCPuppet;
+  if IsDefined(npc) {
+    system = BluntLeapSystem.Get(this.GetGame());
+    if IsDefined(system) {
+      system.ClearThrownBody(npc, "died");
+    };
+  };
+}
+
+// The game's own loot-prompt check, run again (see ClearThrownBody). Returns
+// true if the body now has a loot prompt.
+@addMethod(ScriptedPuppet)
+public func BluntLeapRefreshLoot() -> Bool {
+  CachedBoolValue.SetDirty(this.m_isActiveCached);
+  this.UpdateLootInteraction();
+  return !this.IsActive() && IsDefined(this.m_inventoryComponent) && this.m_inventoryComponent.IsAccessible();
+}
+
 // A ragdoll starts. The game puts NonInteractable on an NPC that is not dead
 // at this point, and a knocked-out NPC is not dead. If this mod threw the NPC
 // and it is already down (the throwing hit knocked it out, or it was knocked
