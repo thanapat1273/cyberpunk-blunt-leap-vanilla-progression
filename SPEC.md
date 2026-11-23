@@ -366,6 +366,19 @@ Found from the log (207 Thunder Breaker leaps at force 20%) and the game's data 
 - **Fix:** the EMP's hit reaction strength is 2 to 2 (data file, and `Refresh` sets the minimum to 1 when "Stagger when not sent flying" is off). The game decides as for any hit. Melee and ranged hits are staggered only without stagger resistance, with a stagger threshold above 0 (Berserk and similar set it to 0), without a large power difference, and not within the timeout after a recent stagger or knockdown. So the struck enemy, just thrown or staggered, gets only a twitch from its own EMP. The blast is a Ranged attack (its base `BaseEMPExplosion`), so the game's "strong explosion" knockdown does not apply, and it cannot be blocked.
 - **Enemies neither hit by the swing nor inside the EMP take no damage from the leap,** so there is nothing for the game to react to: the game's hit area (a 25 cm box swept along the swing's arc, as long as the reach) decides who is hit.
 
+### Unalerted enemies (2026-11-23, D58)
+
+- **Seen in game:** the first fully charged hit on an unalerted enemy (after a reload) did damage but showed neither a throw nor a stagger. The log: the roll gave a stagger (the 20%) and the mod asked for one, but none showed. On other reloads the same first hit rolled a throw, and that worked.
+- **Reading:** an enemy not in combat yet switches to combat when hit, and its AI does not play the stagger. The game's hit-reaction script has no special case for it. A throw forces a ragdoll, which works in any state.
+- **Change:** an enemy that is not in combat yet (`NPCPuppet.IsInCombat` false at the hit) has its own settings:
+  - "Send flying: chance, unalerted" (80%) and "... on heavy enemies, unalerted" (30%);
+  - "Send flying: force, unalerted" (20%);
+  - "Small push instead of stagger, unalerted: force" (4%): when the roll gives it a stagger, it gets a very small throw instead (0 asks for the stagger as before).
+  - Enemies in combat keep "Send flying: chance / chance on heavy enemies / force, in combat" (renamed from "Send flying: ..."; variable names unchanged, so saved values carry over).
+- The one-push-per-enemy rule and the exemptions (bosses, MaxTac, massive, cannot be knocked down) apply to the small push too.
+- The diagnosis log ("Game hit" lines) shows "in combat" for every hit, so the reading can be checked.
+- 44 settings.
+
 ### Not built
 
 - **Screen-edge pulse at full charge** (default Off in §5): no suitable game effect picked yet.

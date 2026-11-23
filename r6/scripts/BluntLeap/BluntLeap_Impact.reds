@@ -37,6 +37,9 @@ public abstract class BluntLeapImpact {
     let chance: Float;
     let label: String;
     let threshold: Float;
+    let unalerted: Bool;
+    let heavy: Bool;
+    let force: Float;
 
     if !IsDefined(attackData) {
       return;
@@ -81,25 +84,44 @@ public abstract class BluntLeapImpact {
     // Berserk or "Unstoppable" is on (x0). The game handles them as usual.
     threshold = GameInstance.GetStatsSystem(target.GetGame()).GetStatValue(Cast<StatsObjectID>(target.GetEntityID()), gamedataStatType.KnockdownDamageThresholdImpulse);
     exempt = target.IsBoss() || Equals(target.GetNPCRarity(), gamedataNPCRarity.MaxTac) || target.IsMassive() || threshold <= 0.0;
-    chance = BluntLeapImpact.IsHeavy(target) ? settings.launchChanceHeavy : settings.launchChance;
+    // An enemy not in combat yet (the first strike on an unaware group) has
+    // its own chance and force. It shows no stagger when hit (it switches to
+    // combat instead), so a rolled stagger becomes a very small throw.
+    unalerted = !NPCPuppet.IsInCombat(target);
+    heavy = BluntLeapImpact.IsHeavy(target);
+    if unalerted {
+      chance = heavy ? settings.unalertedChanceHeavy : settings.unalertedChance;
+      force = settings.unalertedForce;
+    } else {
+      chance = heavy ? settings.launchChanceHeavy : settings.launchChance;
+      force = settings.launchForce;
+    };
     if !exempt && RandRangeF(0.0, 100.0) < chance {
       // One throw per enemy per leap (a second hit on it adds nothing).
       if system.TakeThrow(target.GetEntityID()) {
-        BluntLeapImpact.Launch(system, player, target, hitEvent, label);
+        BluntLeapImpact.Launch(system, player, target, hitEvent, label, force, unalerted ? "sent flying (unalerted)" : "sent flying");
       } else {
         system.Log(label + ": already sent flying by this leap, not pushed again");
       };
     } else {
       if settings.stagger {
-        // Severity 2 is a stagger. The game still refuses it for enemies
-        // that resist staggers, and turns it into a twitch for huge ones.
-        if attackData.GetHitReactionSeverityMin() < 2 {
-          attackData.SetHitReactionSeverityMin(2);
+        if unalerted && !exempt && settings.unalertedStaggerForce > 0.0 {
+          if system.TakeThrow(target.GetEntityID()) {
+            BluntLeapImpact.Launch(system, player, target, hitEvent, label, settings.unalertedStaggerForce, "small push instead of a stagger (unalerted)");
+          } else {
+            system.Log(label + ": already sent flying by this leap, not pushed again");
+          };
+        } else {
+          // Severity 2 is a stagger. The game still refuses it for enemies
+          // that resist staggers, and turns it into a twitch for huge ones.
+          if attackData.GetHitReactionSeverityMin() < 2 {
+            attackData.SetHitReactionSeverityMin(2);
+          };
+          if attackData.GetHitReactionSeverityMax() < 2 {
+            attackData.SetHitReactionSeverityMax(2);
+          };
+          system.Log(label + ": stagger" + (exempt ? " (cannot be thrown)" : "") + (unalerted ? " (unalerted)" : ""));
         };
-        if attackData.GetHitReactionSeverityMax() < 2 {
-          attackData.SetHitReactionSeverityMax(2);
-        };
-        system.Log(label + ": stagger" + (exempt ? " (cannot be thrown)" : ""));
       };
     };
   }
@@ -154,11 +176,11 @@ public abstract class BluntLeapImpact {
 
   // Sends the enemy flying. The force is worked out the way the Gorilla Arms
   // knockout punch does it, from the enemy's own knockdown threshold.
-  private final static func Launch(system: ref<BluntLeapSystem>, player: ref<PlayerPuppet>, target: ref<NPCPuppet>, hitEvent: ref<gameHitEvent>, label: String) -> Void {
+  private final static func Launch(system: ref<BluntLeapSystem>, player: ref<PlayerPuppet>, target: ref<NPCPuppet>, hitEvent: ref<gameHitEvent>, label: String, forcePercent: Float, what: String) -> Void {
     let game: GameInstance = player.GetGame();
     let settings: ref<BluntLeapSettings> = system.Settings();
     let threshold: Float = GameInstance.GetStatsSystem(game).GetStatValue(Cast<StatsObjectID>(target.GetEntityID()), gamedataStatType.KnockdownDamageThresholdImpulse);
-    let impulse: Float = (threshold + 10.0) * TweakDBInterface.GetFloat(t"Items.StrongArms.impulseOfOnePunch", 20.0) * settings.launchForce / 100.0;
+    let impulse: Float = (threshold + 10.0) * TweakDBInterface.GetFloat(t"Items.StrongArms.impulseOfOnePunch", 20.0) * forcePercent / 100.0;
     let up: Float = TweakDBInterface.GetFloat(t"Items.StrongArms.upwardsVectorStrength", 0.7);
     let away: Vector4 = target.GetWorldPosition() - player.GetWorldPosition();
     let right: Vector4;
@@ -226,7 +248,7 @@ public abstract class BluntLeapImpact {
     // Its body must stay lootable if it dies before getting up
     // (BluntLeapSystem.ClearThrownBody).
     system.NoteThrown(target.GetEntityID());
-    system.Log(label + ": sent flying, force " + FloatToStringPrec(impulse, 0) + ", side " + FloatToStringPrec(side, 1) + ", lift " + FloatToStringPrec(lift, 1));
+    system.Log(label + ": " + what + ", force " + FloatToStringPrec(impulse, 0) + ", side " + FloatToStringPrec(side, 1) + ", lift " + FloatToStringPrec(lift, 1));
   }
 }
 
