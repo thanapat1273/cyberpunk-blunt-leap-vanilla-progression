@@ -31,15 +31,16 @@ public class BluntLeapGorillaChargeCallback extends DelayCallback {
   }
 }
 
-// A charge pool was just added: settle it once it exists (see
-// BluntLeapSystem.SettleCharge).
+// A charge pool was just requested: settle it once it exists (see
+// BluntLeapSystem.SettleCharge). Tries counts the retries.
 public class BluntLeapSettleChargeCallback extends DelayCallback {
   public let system: wref<BluntLeapSystem>;
   public let weapon: wref<WeaponObject>;
+  public let tries: Int32;
 
   public func Call() -> Void {
     if IsDefined(this.system) {
-      this.system.SettleCharge(this.weapon);
+      this.system.SettleCharge(this.weapon, this.tries);
     };
   }
 }
@@ -56,6 +57,7 @@ public class BluntLeapChargeListener extends ScriptStatPoolsListener {
     if !IsDefined(this.system) {
       return;
     };
+    this.system.NoteChargeChanged(oldValue, newValue);
     if newValue >= 99.9 && oldValue < 99.9 {
       this.system.OnFullCharge();
       return;
@@ -116,6 +118,22 @@ public class BluntLeapSystem extends ScriptableSystem {
   private let m_crosshair: wref<CrosshairGameController_Melee>;
   private let m_holding: Bool;
 
+  // A pool was requested for this weapon and is not settled yet: its bar
+  // stays hidden until then. When it was requested (sim time).
+  private let m_settleId: EntityID;
+  private let m_settlePending: Bool;
+  private let m_settleRequested: Float;
+
+  // For the log: when the button hold began, when the charged hold started,
+  // its number since the save loaded, whether its first growth and first
+  // bar move were written, and how many bar changes outside a hold were.
+  private let m_pressStart: Float;
+  private let m_holdStart: Float;
+  private let m_holdNumber: Int32;
+  private let m_growthLogged: Bool;
+  private let m_barLogged: Bool;
+  private let m_barOutsideLogged: Int32;
+
   // A stronger leap is on its way: its hit gets the extra effects until this time.
   private let m_strongUntil: Float;
   private let m_empDone: Bool;
@@ -156,6 +174,11 @@ public class BluntLeapSystem extends ScriptableSystem {
     this.m_reachMod = null;
     this.StopGorillaCharge();
     ArrayClear(this.m_thrownIds);
+    // m_settlePending is left as it is: the crosshair may have appeared and
+    // requested a pool before this runs, and every new request sets it.
+    this.m_holding = false;
+    this.m_holdNumber = 0;
+    this.m_barOutsideLogged = 0;
     this.Refresh();
     GameInstance.GetDelaySystem(this.GetGameInstance()).DelayCallback(callback, 1.5, false);
   }
@@ -637,11 +660,16 @@ public class BluntLeapSystem extends ScriptableSystem {
       };
       if !hasPool {
         pools.RequestAddingStatPool(statsId, t"BluntLeap.ChargePool", true);
-        // The pool is added a moment later, so emptying it now does nothing;
-        // settle it once it exists.
+        // Emptying it now may do nothing, and its bar can show a leftover
+        // fill: settle it half a second later (the time seen to work in
+        // game), and keep the bar hidden until then.
+        this.m_settleId = id;
+        this.m_settlePending = true;
+        this.m_settleRequested = this.Now();
         settle = new BluntLeapSettleChargeCallback();
         settle.system = this;
         settle.weapon = weapon;
+        settle.tries = 0;
         GameInstance.GetDelaySystem(game).DelayCallback(settle, 0.5, false);
       };
       listener = new BluntLeapChargeListener();
@@ -736,7 +764,15 @@ public class BluntLeapSystem extends ScriptableSystem {
   // rate (StartPool).
   public final func NoteChargeStarted(weapon: wref<WeaponObject>) -> Void {
     let index: Int32;
+    let pools: ref<StatPoolsSystem>;
+    let statsId: StatsObjectID;
+    let regen: StatPoolModifier;
+    let since: String;
     this.m_holding = true;
+    this.m_holdStart = this.Now();
+    this.m_holdNumber += 1;
+    this.m_growthLogged = false;
+    this.m_barLogged = false;
     if !IsDefined(weapon) {
       return;
     };
@@ -746,6 +782,66 @@ public class BluntLeapSystem extends ScriptableSystem {
     };
     this.m_loggedDilation = -1.0;
     this.m_loggedBlocked = false;
+    if this.Settings().debugLog && this.OwnsChargeOf(weapon) {
+      pools = GameInstance.GetStatPoolsSystem(weapon.GetGame());
+      statsId = Cast<StatsObjectID>(weapon.GetEntityID());
+      pools.GetModifier(statsId, gamedataStatPoolType.WeaponCharge, gameStatPoolModificationTypes.Regeneration, regen);
+      if this.m_pressStart > 0.0 && this.m_holdStart - this.m_pressStart < 10.0 {
+        since = FloatToStringPrec(this.m_holdStart - this.m_pressStart, 2) + " s after the button hold began";
+      } else {
+        since = "(button hold start not seen)";
+      };
+      this.Log("Hold #" + IntToString(this.m_holdNumber) + ": charged hold started " + since + "; pool " + FloatToStringPrec(pools.GetStatPoolValue(statsId, gamedataStatPoolType.WeaponCharge, true), 0) + "%, filling " + (regen.enabled ? "on" : "off") + ", start delay " + FloatToStringPrec(regen.startDelay, 2) + " s, " + FloatToStringPrec(regen.valuePerSec, 1) + " per s" + (this.m_settlePending ? "; the pool is not settled yet" : ""));
+    };
+    this.m_pressStart = 0.0;
+  }
+
+  // The attack button is being held (MeleeHoldEvents), before the charged
+  // hold starts. For the log.
+  public final func NotePressStarted() -> Void {
+    this.m_pressStart = this.Now();
+  }
+
+  // A charge we added changed. For the log: when the current hold's charge
+  // first grew and when it became full.
+  public final func NoteChargeChanged(oldValue: Float, newValue: Float) -> Void {
+    if !this.m_holding || !this.Settings().debugLog {
+      return;
+    };
+    if !this.m_growthLogged && newValue > oldValue {
+      this.m_growthLogged = true;
+      this.Log("Hold #" + IntToString(this.m_holdNumber) + ": charge first grew " + FloatToStringPrec(this.Now() - this.m_holdStart, 2) + " s after the hold started (" + FloatToStringPrec(oldValue, 0) + " to " + FloatToStringPrec(newValue, 0) + "%)");
+    };
+    if newValue >= 99.9 && oldValue < 99.9 {
+      this.Log("Hold #" + IntToString(this.m_holdNumber) + ": charge full " + FloatToStringPrec(this.Now() - this.m_holdStart, 2) + " s after the hold started");
+    };
+  }
+
+  // The crosshair's bar was moved by the game (its pool listener). For the
+  // log: the first move of each hold, and moves outside a hold in the
+  // first 3 s after a pool was requested (a leftover fill would come from
+  // one).
+  public final func NoteBarMoved(weapon: wref<WeaponObject>, oldValue: Float, newValue: Float) -> Void {
+    if !this.Settings().debugLog || !BluntLeapSystem.IsOurChargeType(weapon) {
+      return;
+    };
+    if this.m_holding {
+      if !this.m_barLogged && newValue > oldValue {
+        this.m_barLogged = true;
+        this.Log("Hold #" + IntToString(this.m_holdNumber) + ": bar first moved " + FloatToStringPrec(this.Now() - this.m_holdStart, 2) + " s after the hold started (to " + FloatToStringPrec(newValue, 0) + "%)");
+      };
+      return;
+    };
+    if newValue > 0.0 && this.m_barOutsideLogged < 5 && this.Now() - this.m_settleRequested < 3.0 {
+      this.m_barOutsideLogged += 1;
+      this.Log("Bar set to " + FloatToStringPrec(newValue, 0) + "% outside a hold (from " + FloatToStringPrec(oldValue, 0) + "%)" + (this.m_settlePending ? ", before the pool was settled" : ""));
+    };
+  }
+
+  // True while the bar of this weapon should stay hidden: its pool was
+  // requested and is not settled yet.
+  public final func SettlePending(weapon: wref<WeaponObject>) -> Bool {
+    return this.m_settlePending && IsDefined(weapon) && this.m_settleId == weapon.GetEntityID();
   }
 
   public final func NoteHoldEnded() -> Void {
@@ -756,28 +852,46 @@ public class BluntLeapSystem extends ScriptableSystem {
     this.m_crosshair = crosshair;
   }
 
-  // Half a second after a charge pool was added (a save loaded, a weapon
-  // drawn): the pool exists now. Empty it unless a hold has started, and set
-  // the crosshair's bar to the pool's real value. Emptying it when it was
-  // requested did nothing (it did not exist yet), and an empty pool sends no
-  // change for the bar to follow, so the bar could show a leftover fill.
-  public final func SettleCharge(weapon: wref<WeaponObject>) -> Void {
+  // Half a second after a charge pool was requested (a save loaded, a
+  // weapon drawn), and then every 0.1 s until the pool exists (for up to
+  // about 5 s): empty it unless a hold has started, then show the
+  // crosshair's bar, which stayed hidden until now, at the pool's real
+  // value. In game the bar showed a leftover fill (50 to 100%) right after
+  // a load while the pool itself held 0%; hiding it until here means that
+  // fill is never seen.
+  public final func SettleCharge(weapon: wref<WeaponObject>, tries: Int32) -> Void {
     let pools: ref<StatPoolsSystem>;
     let statsId: StatsObjectID;
     let before: Float;
-    if !IsDefined(weapon) || !this.OwnsChargeOf(weapon) {
+    let shown: Bool = false;
+    let retry: ref<BluntLeapSettleChargeCallback>;
+    if !IsDefined(weapon) || !this.SettlePending(weapon) {
       return;
     };
+    if !this.OwnsChargeOf(weapon) {
+      if tries < 45 && this.ChargeIndex(weapon.GetEntityID()) >= 0 {
+        retry = new BluntLeapSettleChargeCallback();
+        retry.system = this;
+        retry.weapon = weapon;
+        retry.tries = tries + 1;
+        GameInstance.GetDelaySystem(weapon.GetGame()).DelayCallback(retry, 0.1, false);
+      } else {
+        this.m_settlePending = false;
+        this.Log("Charge pool not there " + FloatToStringPrec(this.Now() - this.m_settleRequested, 2) + " s after it was requested; gave up waiting");
+      };
+      return;
+    };
+    this.m_settlePending = false;
     pools = GameInstance.GetStatPoolsSystem(weapon.GetGame());
     statsId = Cast<StatsObjectID>(weapon.GetEntityID());
     before = pools.GetStatPoolValue(statsId, gamedataStatPoolType.WeaponCharge, true);
     if !this.m_holding {
       this.ClearCharge(weapon);
     };
-    if IsDefined(this.m_crosshair) {
-      this.m_crosshair.SetChargeScale(this.m_holding ? before : 0.0);
+    if IsDefined(this.m_crosshair) && this.Settings().chargeBar {
+      shown = this.m_crosshair.BluntLeapBarReady(weapon.GetEntityID(), this.m_holding ? before : 0.0);
     };
-    this.Log("Charge pool settled: it held " + FloatToStringPrec(before, 0) + "%" + (this.m_holding ? " (a hold had started, kept)" : ", emptied"));
+    this.Log("Charge pool settled " + FloatToStringPrec(this.Now() - this.m_settleRequested, 2) + " s after it was requested: it held " + FloatToStringPrec(before, 0) + "%" + (this.m_holding ? " (a hold had started, kept)" : ", emptied") + (shown ? "; bar shown" : "; bar not shown (no crosshair for it)"));
   }
 
   // How slowly Sandevistan makes the world run: 0 to 1, where 1 means it is

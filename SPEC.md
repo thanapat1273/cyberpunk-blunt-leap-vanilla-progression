@@ -390,6 +390,20 @@ Found from the log (207 Thunder Breaker leaps at force 20%) and the game's data 
   - the pool has the game's fill settings: disabled until a hold, start delay 0, 150 per second, no delay on change;
   - 0.5 s after a pool is added, `SettleCharge` empties it (unless a hold has started) and sets the crosshair's bar to the pool's real value. The crosshair controller is remembered when it appears. The log line "Charge pool settled: it held N%" shows what the pool held, to confirm the cause.
 
+### Bar hidden until the charge is ready; first-charge timing log (2026-11-24, D61)
+
+- **Seen in game after D60:** the leftover fill now clears about half a second after loading, but it is still seen until then. The first charge still feels slow to start.
+- **Log:** every "Charge pool settled" line said the pool held **0%**. So the leftover fill is in the crosshair's bar, not in the charge. The fill settings of D60 made no difference the user could feel.
+- **Change (bar):**
+  - while a new pool is waiting to be settled (`SettlePending`), the crosshair keeps the bar hidden, with `m_displayChargeBar` false so the game's stance changes cannot show it;
+  - `SettleCharge` runs 0.5 s after the request (the time that worked in game), then every 0.1 s until the pool exists (up to about 5 s). It empties the pool (unless a hold has started), then calls the crosshair's `BluntLeapBarReady`. That registers the game's bar listener now that the pool exists, sets the bar to the pool's real value and shows it;
+  - the crosshair remembers whether it is on screen (intro to outro), so a bar is never shown for a weapon that was put away. A pool added with the weapon already in hand (settings changed) now gets its bar at once too.
+- **Timing log for the first charge** (with "Write a log" on; times in game seconds, from the sim clock):
+  - "Hold #n: charged hold started X s after the button hold began; pool N%, filling on/off, start delay, per s";
+  - "Hold #n: charge first grew X s after the hold started", "charge full X s after", "bar first moved X s after";
+  - "Crosshair: bar hidden until the charge is ready (it showed N%)", and bar changes outside a hold in the first 3 s after a pool request.
+  These show whether the wait is in the button hold (the game's hold delay), in the charge, or in the bar. No fix for the wait is guessed before that.
+
 ### Not built
 
 - **Screen-edge pulse at full charge** (default Off in §5): no suitable game effect picked yet.
