@@ -410,6 +410,7 @@ Found from the log (207 Thunder Breaker leaps at force 20%) and the game's data 
 - **Timing log (first load after D61):** hold #1 started 0.21 s after the button (the game's normal hold delay); its charge **first grew 1.49 s after the hold started**, and was full at 2.48 s. Holds #2 to #4 grew **at once** (0 s) and were full at 0.99 to 1.00 s. The bar moved together with the charge each time, so the wait was in the charge.
 - **Cause:** our pool's decay was on, with a **1.5 s start delay restarted by every change** (`delayOnChange`). At the start of a hold the mod empties the pool (a change), and the game's `StartPool` turns the fill on and the decay off. On the first hold after a load the decay's delay was still running and held the fill back for 1.5 s. The game's `StopPool` (hold end) never turns the decay back on, so every later hold had no decay and no wait. The decay therefore only ever acted on the first hold, and did nothing useful there: the mod empties the charge itself after every attack.
 - **Fix:** the decay matches the game's own weapon charge (`BaseStatPools.WeaponChargeDecay`): off, no start delay, 300 per second, no delay on change. No script used the decay.
+- **Confirmed in game (2026-11-24):** the user says the first charge fills at once. Log: hold #1 after a load grew at 0 s and was full at 0.99 s, like holds #2 and #3. The bar was hidden for 0.51 s after the load, then shown empty.
 
 ### Not built
 
