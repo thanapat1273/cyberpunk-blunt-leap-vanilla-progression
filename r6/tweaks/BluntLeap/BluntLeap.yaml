@@ -84,7 +84,7 @@ BluntLeap.DistanceBonus:
 # Same pool type as the chainsword's (WeaponCharge), so the game's melee
 # crosshair bar, IsCharged() and the charged-damage rule all work unchanged.
 # It is a separate record: BaseStatPools.TechMeleeCharge is not touched.
-# The scripts empty it after each attack; the decay below is only a fallback.
+# The scripts empty it after each attack; it has no decay of its own.
 
 BluntLeap.ChargePool:
   $type: StatPool
@@ -92,10 +92,14 @@ BluntLeap.ChargePool:
   stat: BaseStats.Charge
   initialValue: 0.0
   savable: false
-  # The fill, as the game's own weapon charge pool has it
-  # (BaseStatPools.WeaponChargeRegen): off until a hold starts it, no start
-  # delay. Without it the engine's defaults applied, and the first charge
-  # could wait a moment before filling.
+  # Fill and decay as the game's own weapon charge pool has them
+  # (BaseStatPools.WeaponChargeRegen / WeaponChargeDecay): the fill is off
+  # until a hold starts it, the decay is off, neither has a start delay.
+  # Until 2026-11-24 the decay was on, with a 1.5 s delay restarted by every
+  # change. The game turns the decay off when a hold starts and never back
+  # on, so it only ever acted on the first hold after a load, and there its
+  # delay held the fill back: the timing log showed the first charge
+  # growing 1.49 s after the hold started, every later one at once.
   regen:
     $type: PoolValueModifier
     enabled: false
@@ -106,12 +110,12 @@ BluntLeap.ChargePool:
     delayOnChange: false
   decay:
     $type: PoolValueModifier
-    enabled: true
+    enabled: false
     rangeBegin: 0.0
     rangeEnd: 100.0
-    startDelay: 1.5
-    valuePerSec: 100.0
-    delayOnChange: true
+    startDelay: 0.0
+    valuePerSec: 300.0
+    delayOnChange: false
 
 # --- Stronger leap: what a fully charged leap does on its hit ---------------
 # One effector class of our own (BluntLeapImpactEffector, in the scripts). It

@@ -67,7 +67,7 @@ With Stronger Leap owned, or "Always charged" on, draw the weapon again first.
 | 4.6 | Stun baton | Its own charge bar and timing, unchanged |
 | 4.7 | After any attack | The bar is empty again |
 | 4.8 | Load a save with a blunt weapon in hand | No leftover fill is ever seen: the bar is hidden for about half a second, then appears empty (log: "Crosshair: bar hidden until the charge is ready", then "Charge pool settled ... bar shown") |
-| 4.9 | The first charge after loading, then a few more | The log's "Hold #n" lines give, for each hold, the time from the button to the charged hold, to the first growth and to the first bar move. Compare hold #1 with the later ones |
+| 4.9 | The first charge after loading, then a few more | The first charge starts filling at once, like the later ones. Log: "Hold #1: charge first grew 0 s after the hold started" and "charge full" about 1 s after (the charge time), the same as holds #2 and on |
 
 ## 5. Stronger leap (fully charged)
 

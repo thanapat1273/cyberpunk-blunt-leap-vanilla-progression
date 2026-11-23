@@ -7,9 +7,9 @@
 // bar, flash it when full, and empty the pool again.
 //
 // Emptying matters: the game's own code never empties a weapon's charge (it
-// clears the player's pool instead), and it switches the slow fallback decay
-// off whenever a charge starts. Without these hooks a charge stays full for
-// good. So ours is emptied:
+// clears the player's pool instead), and the pool has no decay (as the
+// game's own weapon charge has none). Without these hooks a charge stays
+// full for good. So ours is emptied:
 //   - when the weapon is drawn;
 //   - when a strong attack starts to be held (each hold starts from zero);
 //   - when the hold ends without an attack (block, dodge, hit, release);

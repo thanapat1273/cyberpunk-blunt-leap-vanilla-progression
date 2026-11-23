@@ -549,8 +549,8 @@ public class BluntLeapSystem extends ScriptableSystem {
   }
 
   // Empties a charge we added. The game's own code never empties it: it
-  // clears the player's pool instead of the weapon's, and turns the slow
-  // fallback decay off whenever a charge starts.
+  // clears the player's pool instead of the weapon's, and the pool has no
+  // decay.
   public final func ClearCharge(weapon: wref<WeaponObject>) -> Void {
     if !this.OwnsChargeOf(weapon) {
       return;
