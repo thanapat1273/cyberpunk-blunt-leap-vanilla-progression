@@ -102,6 +102,10 @@ public class BluntLeapSystem extends ScriptableSystem {
   private let m_strongUntil: Float;
   private let m_empDone: Bool;
   private let m_hitStopDone: Bool;
+  // For the log: when the stronger leap started, and how many of its hits
+  // the effector has seen.
+  private let m_strongStart: Float;
+  private let m_strongHits: Int32;
 
   // What the perk texts were last set to, so the records are only touched
   // when a setting really changed (the perk screen may be open on a refresh).
@@ -372,11 +376,22 @@ public class BluntLeapSystem extends ScriptableSystem {
     this.m_strongUntil = this.Now() + seconds;
     this.m_empDone = false;
     this.m_hitStopDone = false;
+    this.m_strongStart = this.Now();
+    this.m_strongHits = 0;
     this.Log("Stronger leap started");
   }
 
   public final func DisarmStrongLeap() -> Void {
+    if this.m_strongUntil > 0.0 {
+      this.Log("Stronger leap ended at +" + FloatToStringPrec(this.Now() - this.m_strongStart, 2) + " s (end of the leap attack)");
+    };
     this.m_strongUntil = 0.0;
+  }
+
+  // For the log: "Hit #n +t s" for a hit during the stronger leap.
+  public final func NextStrongHitLabel() -> String {
+    this.m_strongHits += 1;
+    return "Hit #" + IntToString(this.m_strongHits) + " +" + FloatToStringPrec(this.Now() - this.m_strongStart, 2) + " s";
   }
 
   public final func StrongLeapArmed() -> Bool {

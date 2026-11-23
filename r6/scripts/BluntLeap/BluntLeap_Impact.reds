@@ -35,6 +35,7 @@ public abstract class BluntLeapImpact {
     let weapon: ref<WeaponObject>;
     let exempt: Bool;
     let chance: Float;
+    let label: String;
 
     if !IsDefined(attackData) {
       return;
@@ -45,7 +46,12 @@ public abstract class BluntLeapImpact {
     if !IsDefined(player) || !IsDefined(target) || !IsDefined(weapon) || !WeaponObject.IsBlunt(weapon.GetItemID()) {
       return;
     };
+    // For the log: which hit of the leap this is, and on whom.
+    if settings.debugLog {
+      label = system.NextStrongHitLabel() + ", " + BluntLeapImpact.Describe(target, weapon);
+    };
     if attackData.HasFlag(hitFlag.WasBlocked) || attackData.HasFlag(hitFlag.WasDeflected) || attackData.HasFlag(hitFlag.WasDodged) || attackData.HasFlag(hitFlag.WasEvaded) {
+      system.Log(label + ": blocked, deflected or dodged");
       return;
     };
     if Equals(GameObject.GetAttitudeTowards(target, player), EAIAttitude.AIA_Friendly) {
@@ -62,13 +68,14 @@ public abstract class BluntLeapImpact {
 
     // A hit that killed needs nothing more: the game throws the body itself.
     if !ScriptedPuppet.IsAlive(target) || attackData.HasFlag(hitFlag.Kill) || attackData.HasFlag(hitFlag.Defeated) {
+      system.Log(label + ": killed or defeated, left to the game");
       return;
     };
 
     exempt = target.IsBoss() || Equals(target.GetNPCRarity(), gamedataNPCRarity.MaxTac) || target.IsMassive();
     chance = BluntLeapImpact.IsHeavy(target) ? settings.launchChanceHeavy : settings.launchChance;
     if !exempt && RandRangeF(0.0, 100.0) < chance {
-      BluntLeapImpact.Launch(system, player, target, hitEvent);
+      BluntLeapImpact.Launch(system, player, target, hitEvent, label);
     } else {
       if settings.stagger {
         // Severity 2 is a stagger. The game still refuses it for enemies
@@ -79,9 +86,18 @@ public abstract class BluntLeapImpact {
         if attackData.GetHitReactionSeverityMax() < 2 {
           attackData.SetHitReactionSeverityMax(2);
         };
-        system.Log("Hit: stagger");
+        system.Log(label + ": stagger" + (exempt ? " (cannot be thrown)" : ""));
       };
     };
+  }
+
+  // For the log: the target's record and a short id (to tell two enemies
+  // from one enemy hit twice), its knockdown threshold (-1: the game says it
+  // cannot be knocked down by force), whether it is heavy, and the weapon.
+  private final static func Describe(target: ref<NPCPuppet>, weapon: ref<WeaponObject>) -> String {
+    let threshold: Float = GameInstance.GetStatsSystem(target.GetGame()).GetStatValue(Cast<StatsObjectID>(target.GetEntityID()), gamedataStatType.KnockdownDamageThresholdImpulse);
+    let id: String = ToString(EntityID.GetHash(target.GetEntityID()));
+    return TDBID.ToStringDEBUG(target.GetRecordID()) + " #" + StrRight(id, 5) + ", threshold " + FloatToStringPrec(threshold, 0) + (BluntLeapImpact.IsHeavy(target) ? ", heavy" : "") + ", " + EnumValueToString("gamedataItemType", Cast<Int64>(EnumInt(WeaponObject.GetWeaponType(weapon.GetItemID()))));
   }
 
   // The game's heavy enemy types.
@@ -125,7 +141,7 @@ public abstract class BluntLeapImpact {
 
   // Sends the enemy flying. The force is worked out the way the Gorilla Arms
   // knockout punch does it, from the enemy's own knockdown threshold.
-  private final static func Launch(system: ref<BluntLeapSystem>, player: ref<PlayerPuppet>, target: ref<NPCPuppet>, hitEvent: ref<gameHitEvent>) -> Void {
+  private final static func Launch(system: ref<BluntLeapSystem>, player: ref<PlayerPuppet>, target: ref<NPCPuppet>, hitEvent: ref<gameHitEvent>, label: String) -> Void {
     let game: GameInstance = player.GetGame();
     let settings: ref<BluntLeapSettings> = system.Settings();
     let threshold: Float = GameInstance.GetStatsSystem(game).GetStatValue(Cast<StatsObjectID>(target.GetEntityID()), gamedataStatType.KnockdownDamageThresholdImpulse);
@@ -197,7 +213,7 @@ public abstract class BluntLeapImpact {
     // Its body must stay lootable if it dies before getting up
     // (BluntLeapSystem.ClearThrownBody).
     system.NoteThrown(target.GetEntityID());
-    system.Log("Hit: sent flying, force " + FloatToStringPrec(impulse, 0) + ", side " + FloatToStringPrec(side, 1) + ", lift " + FloatToStringPrec(lift, 1));
+    system.Log(label + ": sent flying, force " + FloatToStringPrec(impulse, 0) + ", side " + FloatToStringPrec(side, 1) + ", lift " + FloatToStringPrec(lift, 1));
   }
 }
 

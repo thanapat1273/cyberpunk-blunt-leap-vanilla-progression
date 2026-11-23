@@ -143,6 +143,23 @@ Thunder Breaker owned. With "Write a log" on, the log shows "Gorilla Arms charge
 | 10.3 | Release before the sound | A normal leap ("no charge") |
 | 10.4 | With the relic perk for Gorilla Arms | Its own charge and charged punch work as before, untouched by the hold |
 
+## 11. Throw research (2026-11-23)
+
+Nothing changes in play: this build only writes more to the log. Keep "Write a log" on. Each hit of a Thunder Breaker leap now writes a line like:
+
+`Hit #1 +0.42 s, Character.xyz #12345, threshold 50, Wea_TwoHandedClub: sent flying, force 240, side -1, lift 1`
+
+(hit number and time since the leap started, the enemy and a short id, its knockdown threshold, the weapon, then what happened). Also "Stronger leap ended at +t s" when Thunder Breaker ends with the leap's attack.
+
+| # | Do | Why |
+|---|---|---|
+| 11.1 | Your usual blunt weapon: 5 fully charged leaps into a single enemy | One enemy hit twice by one swing? |
+| 11.2 | The same: 5 fully charged leaps into 2 or 3 enemies standing close together | One swing hitting two enemies? |
+| 11.3 | Gorilla Arms: 5 fully charged leaps, each followed at once by 2 or 3 quick punches | Do the follow-up punches throw too? |
+| 11.4 | If drones are around: a fully charged leap at a drone | Which enemies have threshold -1 |
+
+Then tell Claude; the log says the rest.
+
 ## Things to tell me
 
 - Anything in the lists that did not match.
