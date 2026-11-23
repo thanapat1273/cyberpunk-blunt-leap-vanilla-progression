@@ -45,14 +45,16 @@ public class BluntLeapSettleChargeCallback extends DelayCallback {
   }
 }
 
-// One second after a thrown NPC went down: is its body lootable?
+// A moment after a thrown NPC went down (after, in seconds): is its body
+// lootable?
 public class BluntLeapBodyCheckCallback extends DelayCallback {
   public let system: wref<BluntLeapSystem>;
   public let npc: wref<NPCPuppet>;
+  public let after: Float;
 
   public func Call() -> Void {
     if IsDefined(this.system) {
-      this.system.RecheckThrownBody(this.npc);
+      this.system.RecheckThrownBody(this.npc, this.after);
     };
   }
 }
@@ -1114,7 +1116,10 @@ public class BluntLeapSystem extends ScriptableSystem {
   // effect back on, with no recovery to come. Seen in game 2026-11-24: two
   // bodies without a prompt, both thrown by the hit that took them down.
   // So the effect is also taken off when a ragdoll starts on a thrown NPC
-  // that is already down, and checked once more a second later.
+  // that is already down. The game adds it a moment after the ragdoll
+  // starts (it was not there yet when looked for right away: seen in game
+  // 2026-11-24, a knocked-out body moved again over a minute later, and the
+  // 1 s check took it off), so the body is checked again 0.1 s and 1 s later.
 
   public final func NoteThrown(id: EntityID) -> Void {
     if ArrayContains(this.m_thrownIds, id) {
@@ -1145,21 +1150,30 @@ public class BluntLeapSystem extends ScriptableSystem {
     check = new BluntLeapBodyCheckCallback();
     check.system = this;
     check.npc = npc;
+    check.after = 0.1;
+    GameInstance.GetDelaySystem(npc.GetGame()).DelayCallback(check, 0.1, false);
+    check = new BluntLeapBodyCheckCallback();
+    check.system = this;
+    check.npc = npc;
+    check.after = 1.0;
     GameInstance.GetDelaySystem(npc.GetGame()).DelayCallback(check, 1.0, false);
   }
 
-  // A second after a thrown NPC went down. If it is still down and still has
-  // the effect, it is taken off again (and the log says so).
-  public final func RecheckThrownBody(npc: wref<NPCPuppet>) -> Void {
+  // 0.1 s and 1 s after a thrown NPC went down (after). If it is still down
+  // and has the effect, it is taken off again. The log says so; the 1 s
+  // check also says when the body is lootable.
+  public final func RecheckThrownBody(npc: wref<NPCPuppet>, after: Float) -> Void {
     let effect: TweakDBID = t"BaseStatusEffect.NonInteractable";
     if !IsDefined(npc) || (!npc.IsIncapacitated() && ScriptedPuppet.IsActive(npc)) {
       return;
     };
     if StatusEffectSystem.ObjectHasStatusEffect(npc, effect) {
       GameInstance.GetStatusEffectSystem(npc.GetGame()).RemoveStatusEffect(npc.GetEntityID(), effect, 200u);
-      this.Log("Thrown NPC #" + BluntLeapSystem.ShortId(npc.GetEntityID()) + " still had NonInteractable 1 s after going down: taken off again");
+      this.Log("Thrown NPC #" + BluntLeapSystem.ShortId(npc.GetEntityID()) + " had NonInteractable " + FloatToStringPrec(after, 1) + " s after going down: taken off");
     } else {
-      this.Log("Thrown NPC #" + BluntLeapSystem.ShortId(npc.GetEntityID()) + " 1 s after going down: no NonInteractable, lootable");
+      if after >= 1.0 {
+        this.Log("Thrown NPC #" + BluntLeapSystem.ShortId(npc.GetEntityID()) + " " + FloatToStringPrec(after, 1) + " s after going down: no NonInteractable, lootable");
+      };
     };
   }
 
