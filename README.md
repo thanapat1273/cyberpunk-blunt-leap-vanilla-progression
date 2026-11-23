@@ -8,7 +8,7 @@ The goal is a mod that feels like part of the game: two new perks in the Body tr
 
 ## Status
 
-Version 1.2.0. Played and tested in game (2026-11-22 and 23): the leap with blunt weapons, the charge, both perks and the Dash requirement, the stronger leap (throw, stagger, EMP), the perk screen, the perk texts and the perk-card videos. The test list is [TESTING.md](TESTING.md).
+Version 1.2.1. Played and tested in game (2026-11-22 to 24): the leap with blunt weapons, the charge, both perks and the Dash requirement, the stronger leap (throw, stagger, EMP), the perk screen, the perk texts and the perk-card videos, looting thrown enemies, and the charge bar after loading. The test list is [TESTING.md](TESTING.md).
 
 | Part | Contents |
 |---|---|
@@ -16,13 +16,13 @@ Version 1.2.0. Played and tested in game (2026-11-22 and 23): the leap with blun
 | Thunder Breaker | Stronger leap on a full charge: longer and faster leap, EMP on a crit, send the enemy flying or stagger them, hit stop, full-charge sound, flash and rumble |
 | Perks | Two perks in the Body tree with the game's look, icons, texts and videos; four unlock rules; the Dash requirement with a Dash box on the perk screen; automatic refunds |
 
-Not confirmed in game yet: the "Partial" value of "Charge speed under Sandevistan" since its fix in 1.2.0.
+Not confirmed in game yet: the "Partial" value of "Charge speed under Sandevistan" since its fix in 1.2.0, and the quicker (0.1 s) check of thrown bodies in 1.2.1 (the 1 s check it adds to was tested).
 
 The full design is in [SPEC.md](SPEC.md). The game facts behind it are in [RESEARCH.md](RESEARCH.md).
 
 ## Changes
 
-**Next** (not released yet)
+**1.2.1** (2026-11-24)
 - Fixed: enemies sent flying who died before getting up left bodies whose loot could not be picked up (no loot prompt). This includes enemies knocked out by the same hit that sends them flying.
 - Sending flying is more consistent: an enemy is pushed at most once per leap (a swing that hit it twice could throw it 20 to 50 m), and enemies the game says cannot be knocked down (drones, mechs, Berserk) are no longer given a tiny push; they are left to the game.
 - Thunder Breaker with Gorilla Arms now ends with the leap's punch, so quick follow-up punches no longer throw.
