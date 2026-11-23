@@ -243,6 +243,13 @@ public abstract class BluntLeapImpact {
     // Knockdown is the reaction the game plays; the ragdoll and the impulse
     // make it a flight.
     hitEvent.attackData.AddFlag(hitFlag.ForceKnockdown, n"BluntLeap");
+    // V threw it: V is the ragdoll's instigator, as with the game's own
+    // ragdolls from V's attacks. The game gives a ragdoll's impacts (a wall,
+    // a fall) to its instigator, or to the NPC itself if there is none; an
+    // NPC killed by its own impact counts as a kill not credited to V, and
+    // its body offers no interaction at all, no loot and no pick-up (seen
+    // in game 2026-11-24). The forced ragdoll below names no instigator.
+    target.BluntLeapCreditRagdoll(player);
     GameInstance.GetDelaySystem(game).DelayEvent(target, CreateForceRagdollEvent(n"Blunt Leap: sent flying"), 0.01, false);
     GameInstance.GetDelaySystem(game).DelayEvent(target, CreateRagdollApplyImpulseEvent(hitEvent.hitPosition, push, 1.0), 0.1, false);
     // Its body must stay lootable if it dies before getting up
@@ -289,7 +296,7 @@ protected func OnDied() -> Void {
   if IsDefined(npc) {
     system = BluntLeapSystem.Get(this.GetGame());
     if IsDefined(system) {
-      system.ClearThrownBody(npc, late ? (knockedOut ? "died after going down (it was knocked out)" : "died after going down (it was not knocked out)") : "died", true);
+      system.ClearThrownBody(npc, (late ? (knockedOut ? "died after going down (it was knocked out)" : "died after going down (it was not knocked out)") : "died") + (IsDefined(npc.GetKiller() as PlayerPuppet) ? ", kill credited to V" : ", kill NOT credited to V"), true);
     };
   };
 }
@@ -303,52 +310,12 @@ public func BluntLeapRefreshLoot() -> Bool {
   return !this.IsActive() && IsDefined(this.m_inventoryComponent) && this.m_inventoryComponent.IsAccessible();
 }
 
-// For testing only, from the CET console (tools/cet_unstick.lua): a body
-// with no interaction at all (no loot, no pick-up) although the game's loot
-// check says it is lootable. Each step tries one of the game's own ways of
-// turning interactions on, so the step that brings the prompt back shows
-// what is stuck:
-//   1. the 'Loot' interaction layer on, directly;
-//   2. the body's interaction component off and on again;
-//   3. the end of the AI ragdoll behaviour (as when a ragdoll settles);
-//   4. NonInteractable added once and taken off again the game's way (a
-//      RemoveStatusEffectEvent half a second later), in case a count kept
-//      by the game is off.
-@addMethod(ScriptedPuppet)
-public func BluntLeapUnstick(step: Int32) -> String {
-  let npc: ref<NPCPuppet>;
-  let remove: ref<RemoveStatusEffectEvent>;
-  switch step {
-    case 1:
-      this.EnableInteraction(n"Loot", true);
-      return "step 1: 'Loot' interaction layer turned on";
-    case 2:
-      if !IsDefined(this.m_interactionComponent) {
-        return "step 2: this body has no interaction component";
-      };
-      this.m_interactionComponent.Toggle(false);
-      this.m_interactionComponent.Toggle(true);
-      return "step 2: interaction component turned off and on";
-    case 3:
-      npc = this as NPCPuppet;
-      if !IsDefined(npc) {
-        return "step 3: not an NPC";
-      };
-      npc.BluntLeapEndRagdollBehavior();
-      return "step 3: end of the ragdoll behaviour sent";
-    case 4:
-      StatusEffectHelper.ApplyStatusEffect(this, t"BaseStatusEffect.NonInteractable");
-      remove = new RemoveStatusEffectEvent();
-      remove.effectID = t"BaseStatusEffect.NonInteractable";
-      GameInstance.GetDelaySystem(this.GetGame()).DelayEvent(this, remove, 0.5, true);
-      return "step 4: NonInteractable added, and taken off the game's way in 0.5 s";
-  };
-  return "steps are 1 to 4";
-}
-
+// V is the instigator of the ragdoll this mod starts (see Launch). Read by
+// the game when the ragdolling body hits something (OnStartRagdollDamageEvent
+// through GetRagdollInstigator).
 @addMethod(NPCPuppet)
-public func BluntLeapEndRagdollBehavior() -> Void {
-  this.TriggerRagdollBehaviorEnd();
+public func BluntLeapCreditRagdoll(instigator: ref<GameObject>) -> Void {
+  this.m_ragdollInstigator = instigator;
 }
 
 // A ragdoll starts. The game puts NonInteractable on an NPC that is not dead

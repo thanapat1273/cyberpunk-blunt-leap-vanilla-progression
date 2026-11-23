@@ -23,7 +23,7 @@ The full design is in [SPEC.md](SPEC.md). The game facts behind it are in [RESEA
 ## Changes
 
 **1.2.1** (2026-11-24)
-- Fixed: enemies sent flying who died before getting up left bodies whose loot could not be picked up (no loot prompt). This includes enemies knocked out by the same hit that sends them flying, and enemies that die a moment after being thrown (for example hitting a wall).
+- Fixed: enemies sent flying who died before getting up left bodies whose loot could not be picked up (no loot prompt). This includes enemies knocked out by the same hit that sends them flying, and enemies killed by hitting a wall or the ground after being thrown (those kills are now credited to V, as the game does for its own ragdolls).
 - Sending flying is more consistent: an enemy is pushed at most once per leap (a swing that hit it twice could throw it 20 to 50 m), and enemies the game says cannot be knocked down (drones, mechs, Berserk) are no longer given a tiny push; they are left to the game.
 - Thunder Breaker with Gorilla Arms now ends with the leap's punch, so quick follow-up punches no longer throw.
 - Enemies damaged by Thunder Breaker's EMP blast are now staggered too (when the game allows it: not if they resist staggers or are Berserk).
