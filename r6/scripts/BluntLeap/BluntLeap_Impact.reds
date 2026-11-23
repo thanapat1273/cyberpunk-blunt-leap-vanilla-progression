@@ -36,6 +36,7 @@ public abstract class BluntLeapImpact {
     let exempt: Bool;
     let chance: Float;
     let label: String;
+    let threshold: Float;
 
     if !IsDefined(attackData) {
       return;
@@ -72,10 +73,21 @@ public abstract class BluntLeapImpact {
       return;
     };
 
-    exempt = target.IsBoss() || Equals(target.GetNPCRarity(), gamedataNPCRarity.MaxTac) || target.IsMassive();
+    // Never thrown: bosses, MaxTac, massive enemies, and every enemy the game
+    // says cannot be knocked down by force right now. The game marks those
+    // with a knockdown threshold of 0 or less: drones, big drones and mechs
+    // (-1), border patrol drones (0), some bosses, and any enemy while
+    // Berserk or "Unstoppable" is on (x0). The game handles them as usual.
+    threshold = GameInstance.GetStatsSystem(target.GetGame()).GetStatValue(Cast<StatsObjectID>(target.GetEntityID()), gamedataStatType.KnockdownDamageThresholdImpulse);
+    exempt = target.IsBoss() || Equals(target.GetNPCRarity(), gamedataNPCRarity.MaxTac) || target.IsMassive() || threshold <= 0.0;
     chance = BluntLeapImpact.IsHeavy(target) ? settings.launchChanceHeavy : settings.launchChance;
     if !exempt && RandRangeF(0.0, 100.0) < chance {
-      BluntLeapImpact.Launch(system, player, target, hitEvent, label);
+      // One throw per enemy per leap (a second hit on it adds nothing).
+      if system.TakeThrow(target.GetEntityID()) {
+        BluntLeapImpact.Launch(system, player, target, hitEvent, label);
+      } else {
+        system.Log(label + ": already sent flying by this leap, not pushed again");
+      };
     } else {
       if settings.stagger {
         // Severity 2 is a stagger. The game still refuses it for enemies

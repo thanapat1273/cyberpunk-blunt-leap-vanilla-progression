@@ -143,9 +143,9 @@ Thunder Breaker owned. With "Write a log" on, the log shows "Gorilla Arms charge
 | 10.3 | Release before the sound | A normal leap ("no charge") |
 | 10.4 | With the relic perk for Gorilla Arms | Its own charge and charged punch work as before, untouched by the hold |
 
-## 11. Throw research (2026-11-23)
+## 11. Throw research and fixes (2026-11-23)
 
-Nothing changes in play: this build only writes more to the log. Keep "Write a log" on. Each hit of a Thunder Breaker leap now writes a line like:
+The research build (log only) was followed the same day by the fixes C, B and A (SPEC, "Throw consistency"). The test is normal play; Claude reads the log. Keep "Write a log" on. Each hit of a Thunder Breaker leap now writes a line like:
 
 `Hit #1 +0.42 s, Character.xyz #12345, threshold 50, Wea_TwoHandedClub: sent flying, force 240, side -1, lift 1`
 

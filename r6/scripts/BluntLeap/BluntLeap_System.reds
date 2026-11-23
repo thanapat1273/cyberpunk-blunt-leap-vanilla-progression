@@ -106,6 +106,8 @@ public class BluntLeapSystem extends ScriptableSystem {
   // the effector has seen.
   private let m_strongStart: Float;
   private let m_strongHits: Int32;
+  // The enemies this stronger leap has already sent flying: each goes once.
+  private let m_strongThrown: array<EntityID>;
 
   // What the perk texts were last set to, so the records are only touched
   // when a setting really changed (the perk screen may be open on a refresh).
@@ -378,6 +380,7 @@ public class BluntLeapSystem extends ScriptableSystem {
     this.m_hitStopDone = false;
     this.m_strongStart = this.Now();
     this.m_strongHits = 0;
+    ArrayClear(this.m_strongThrown);
     this.Log("Stronger leap started");
   }
 
@@ -386,6 +389,17 @@ public class BluntLeapSystem extends ScriptableSystem {
       this.Log("Stronger leap ended at +" + FloatToStringPrec(this.Now() - this.m_strongStart, 2) + " s (end of the leap attack)");
     };
     this.m_strongUntil = 0.0;
+  }
+
+  // One throw per enemy per stronger leap. A swing that hits one enemy twice
+  // pushed it twice (the 20 to 50 m flights); several enemies hit by one
+  // swing still all fly. True the first time it is asked for an enemy.
+  public final func TakeThrow(id: EntityID) -> Bool {
+    if ArrayContains(this.m_strongThrown, id) {
+      return false;
+    };
+    ArrayPush(this.m_strongThrown, id);
+    return true;
   }
 
   // For the log: "Hit #n +t s" for a hit during the stronger leap.

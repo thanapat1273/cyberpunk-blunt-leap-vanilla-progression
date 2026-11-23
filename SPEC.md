@@ -349,6 +349,16 @@ The swing start and the reach bonus are now two settings for each blunt weapon t
 - **Fix:** the NPCs this mod sends flying are remembered (`BluntLeapSystem.NoteThrown`, at most 64). A wrapper on `NPCPuppet.OnIncapacitated` (death or knockout; the game processes the loot there) takes every `NonInteractable` stack off them (`ClearThrownBody`). Other NPCs, and the game's other uses of the effect (takedowns), are not touched.
 - **Not fixed:** bodies already lying in a save from before the fix. The fix works from the throw on.
 
+### Throw consistency (2026-11-23, D54 to D56)
+
+Found from the log (207 Thunder Breaker leaps at force 20%) and the game's data and scripts; the user chose what to change.
+
+- **C, enemies that cannot be knocked down (D54):** the game marks them with a knockdown threshold of 0 or less, and its own knockdown checks require more than 0. Those are drones, big drones and mechs (-1), border patrol drones (0), some bosses (-1), and any enemy while Berserk or "Unstoppable" is on (x0). No ordinary enemy has -1 by default. The force formula used the -1 as an amount and gave force 36: the 1 m pushes. Now such enemies are never thrown: they take the stagger path, like bosses, and the game handles them.
+- **B, Thunder Breaker ends with the leap's attack (D55):** most weapons already ended it when the game consumes the weapon charge, 0.1 s after the hit window (`ConsumeWeaponCharge`). Gorilla Arms consume theirs on every frame of the swing, so they kept the 2 s timer, and quick follow-up punches could throw too. Now it also ends when the attack that follows the leap ends (`MeleeAttackGenericEvents.OnExit` / `OnForcedExit`), and when a leap ends without an attack.
+- **A, one throw per enemy per leap (D56):** a swing that hit one enemy twice pushed it twice, the likely 20 to 50 m flights. Now a second hit on an enemy already sent flying by this leap adds nothing (`BluntLeapSystem.TakeThrow`); several enemies hit by one swing all still fly.
+- **D, kept as it is:** the push goes in at the hit point, which makes each throw different, and the upward or downward lift follows the swing.
+- The research log stays: each Thunder Breaker hit writes its number, time, target, threshold, weapon and result; a blocked second push writes "already sent flying by this leap".
+
 ### Not built
 
 - **Screen-edge pulse at full charge** (default Off in §5): no suitable game effect picked yet.

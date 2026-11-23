@@ -197,6 +197,10 @@ public func OnExit(stateContext: ref<StateContext>, scriptInterface: ref<StateGa
     if IsDefined(system) {
       system.ClearCharge(weapon);
       system.RemoveLeapReach();
+      // Thunder Breaker belongs to the leap's own attack only. Most weapons
+      // already ended it with the hit window (ConsumeWeaponCharge); Gorilla
+      // Arms end it here.
+      system.DisarmStrongLeap();
     };
   };
 }
@@ -212,6 +216,10 @@ public func OnForcedExit(stateContext: ref<StateContext>, scriptInterface: ref<S
     if IsDefined(system) {
       system.ClearCharge(weapon);
       system.RemoveLeapReach();
+      // Thunder Breaker belongs to the leap's own attack only. Most weapons
+      // already ended it with the hit window (ConsumeWeaponCharge); Gorilla
+      // Arms end it here.
+      system.DisarmStrongLeap();
     };
   };
 }

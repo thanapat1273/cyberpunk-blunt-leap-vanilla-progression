@@ -288,6 +288,8 @@ public func OnExit(stateContext: ref<StateContext>, scriptInterface: ref<StateGa
   system = BluntLeapSystem.Get(scriptInterface.executionOwner.GetGame());
   if IsDefined(system) {
     system.RemoveLeapReach();
+    // No attack follows: Thunder Breaker ends with the leap.
+    system.DisarmStrongLeap();
   };
 }
 
@@ -298,5 +300,6 @@ public func OnForcedExit(stateContext: ref<StateContext>, scriptInterface: ref<S
   system = BluntLeapSystem.Get(scriptInterface.executionOwner.GetGame());
   if IsDefined(system) {
     system.RemoveLeapReach();
+    system.DisarmStrongLeap();
   };
 }

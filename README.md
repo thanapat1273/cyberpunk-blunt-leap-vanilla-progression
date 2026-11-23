@@ -24,6 +24,8 @@ The full design is in [SPEC.md](SPEC.md). The game facts behind it are in [RESEA
 
 **Next** (not released yet)
 - Fixed: enemies sent flying who died before getting up left bodies whose loot could not be picked up (no loot prompt).
+- Sending flying is more consistent: an enemy is pushed at most once per leap (a swing that hit it twice could throw it 20 to 50 m), and enemies the game says cannot be knocked down (drones, mechs, Berserk) are no longer given a tiny push; they are left to the game.
+- Thunder Breaker with Gorilla Arms now ends with the leap's punch, so quick follow-up punches no longer throw.
 
 **1.2.0** (2026-11-23)
 - Gorilla Arms now charge by holding a strong attack (setting "Charge time: Gorilla Arms", 0.75 s), with the full-charge sound and rumble, so their leaps can be Thunder Breaker leaps. Before, they never charged: their own charge belongs to the relic perk, which this mod does not touch. No charge bar for Gorilla Arms.
