@@ -1,0 +1,5 @@
+* text=auto eol=lf
+*.png binary
+*.archive binary
+*.bk2 binary
+*.avif binary
