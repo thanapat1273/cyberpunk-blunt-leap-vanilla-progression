@@ -89,6 +89,7 @@ With Stronger Leap owned, or "Always charged" on, draw the weapon again first.
 | 5.12 | Mod Settings page | 9 groups in order: General, Features, Battering Ram: Leap, Charge, Thunder Breaker, Thunder Breaker: Send flying, Thunder Breaker: EMP, Advanced: swing and reach per weapon, Troubleshooting. Turning a switch off hides its options at once (Charge bar: bar flash; Send flying: its six options; EMP on a crit: radius and damage; Stagger when not sent flying: small push). Your earlier values are kept |
 | 5.13 | Send flying off, fully charged leaps | No throws; staggers (or the small push at an idle spot). Thunder Breaker's perk card no longer mentions sending flying |
 | 5.14 | Non-lethal throws on, throw enemies hard at walls (the test add-on's wall-kill mode helps) | They are knocked out, not killed (log: "hard impact made non-lethal"); bodies can be looted and picked up |
+| 5.15 | Bat or other two-handed club (1.0 s): draw it, hold a strong attack, then put it away and draw it again many times, open the inventory, change equipment, get in and out of a car | The charge is full at about 1 s every time; its tooltip says "1 sec Charge Time", never 2; log "rate base 100". A weapon that was already at 2 s before this fix logs "Charge time was 2.00 s, set to 1.00 s" on its next draw or hold |
 
 ## 6. Saving
 

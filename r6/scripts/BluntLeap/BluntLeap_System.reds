@@ -721,8 +721,10 @@ public class BluntLeapSystem extends ScriptableSystem {
     };
 
     // Remembered, but the entity lost our pool: it is a new weapon object.
+    // Its stats are left alone (they may still hold what we set, see
+    // SetChargeTime); only our record of it is dropped.
     if index >= 0 && !hasPool {
-      this.ReleaseCharge(weapon);
+      this.ForgetCharge(statsId, index);
       index = -1;
     };
 
@@ -730,17 +732,20 @@ public class BluntLeapSystem extends ScriptableSystem {
     bonus = settings.chargeBonus;
 
     if index < 0 {
-      timeMod = RPGManager.CreateStatModifier(gamedataStatType.ChargeTime, gameStatModifierType.Additive, time);
-      stats.AddModifier(statsId, timeMod);
+      this.SetChargeTime(stats, statsId, time);
+      timeMod = null;
       maxMod = null;
       if stats.GetStatValue(statsId, gamedataStatType.Charge) <= 0.0 {
         // The pool's size comes from this stat; charged weapons have 100.
         maxMod = RPGManager.CreateStatModifier(gamedataStatType.Charge, gameStatModifierType.Additive, 100.0);
         stats.AddModifier(statsId, maxMod);
       };
-      bonusMod = this.BonusModifier(bonus);
-      if IsDefined(bonusMod) {
-        stats.AddModifier(statsId, bonusMod);
+      bonusMod = null;
+      if !this.HasChargeBonus(stats, statsId, bonus) {
+        bonusMod = this.BonusModifier(bonus);
+        if IsDefined(bonusMod) {
+          stats.AddModifier(statsId, bonusMod);
+        };
       };
       if !hasPool {
         pools.RequestAddingStatPool(statsId, t"BluntLeap.ChargePool", true);
@@ -772,13 +777,10 @@ public class BluntLeapSystem extends ScriptableSystem {
       return true;
     };
 
-    // Known weapon: follow changed settings.
-    if AbsF(time - this.m_chargeTimes[index]) > 0.001 {
-      stats.RemoveModifier(statsId, this.m_chargeTimeMods[index]);
-      this.m_chargeTimeMods[index] = RPGManager.CreateStatModifier(gamedataStatType.ChargeTime, gameStatModifierType.Additive, time);
-      stats.AddModifier(statsId, this.m_chargeTimeMods[index]);
-      this.m_chargeTimes[index] = time;
-    };
+    // Known weapon: its charge time is checked every time (draw, hold start),
+    // and follows a changed setting.
+    this.SetChargeTime(stats, statsId, time);
+    this.m_chargeTimes[index] = time;
     if AbsF(bonus - this.m_chargeBonuses[index]) > 0.01 {
       if IsDefined(this.m_chargeBonusMods[index]) {
         stats.RemoveModifier(statsId, this.m_chargeBonusMods[index]);
@@ -811,9 +813,6 @@ public class BluntLeapSystem extends ScriptableSystem {
       if IsDefined(this.m_chargeListeners[index]) {
         pools.RequestUnregisteringListener(statsId, gamedataStatPoolType.WeaponCharge, this.m_chargeListeners[index]);
       };
-      if IsDefined(this.m_chargeTimeMods[index]) {
-        stats.RemoveModifier(statsId, this.m_chargeTimeMods[index]);
-      };
       if IsDefined(this.m_chargeMaxMods[index]) {
         stats.RemoveModifier(statsId, this.m_chargeMaxMods[index]);
       };
@@ -829,9 +828,55 @@ public class BluntLeapSystem extends ScriptableSystem {
       ArrayErase(this.m_chargeListeners, index);
       ArrayErase(this.m_chargeRates, index);
     };
+    // No charge time left (these weapons have none of their own).
+    this.SetChargeTime(stats, statsId, 0.0);
     if pools.IsStatPoolAdded(statsId, gamedataStatPoolType.WeaponCharge) {
       pools.RequestRemovingStatPool(statsId, gamedataStatPoolType.WeaponCharge);
     };
+  }
+
+  // Drops our record of a weapon (index) without touching its stats: used
+  // when the weapon in hand is a new object of a weapon we knew.
+  private final func ForgetCharge(statsId: StatsObjectID, index: Int32) -> Void {
+    if IsDefined(this.m_chargeListeners[index]) {
+      GameInstance.GetStatPoolsSystem(this.GetGameInstance()).RequestUnregisteringListener(statsId, gamedataStatPoolType.WeaponCharge, this.m_chargeListeners[index]);
+    };
+    ArrayErase(this.m_chargeIds, index);
+    ArrayErase(this.m_chargeTimes, index);
+    ArrayErase(this.m_chargeBonuses, index);
+    ArrayErase(this.m_chargeTimeMods, index);
+    ArrayErase(this.m_chargeMaxMods, index);
+    ArrayErase(this.m_chargeBonusMods, index);
+    ArrayErase(this.m_chargeListeners, index);
+    ArrayErase(this.m_chargeRates, index);
+  }
+
+  // Sets the weapon's charge time (its ChargeTime stat) to 'time' by adding
+  // the difference to what it has now. Not a fixed +time: the stat keeps
+  // what was added to it when the weapon object is made again (a weapon put
+  // away and drawn, without a load), and adding the full time again then
+  // doubled it (seen 2026-11-25: a bat set to 1 s took 2 s, the log's rate
+  // 50 per second instead of 100, after the mod set the bat up a second
+  // time). A weapon already at 2 s is brought back on its next draw or hold.
+  private final func SetChargeTime(stats: ref<StatsSystem>, statsId: StatsObjectID, time: Float) -> Void {
+    let current: Float = stats.GetStatValue(statsId, gamedataStatType.ChargeTime);
+    if AbsF(time - current) <= 0.001 {
+      return;
+    };
+    stats.AddModifier(statsId, RPGManager.CreateStatModifier(gamedataStatType.ChargeTime, gameStatModifierType.Additive, time - current));
+    if current > 0.001 && time > 0.001 {
+      this.Log("Charge time was " + FloatToStringPrec(current, 2) + " s, set to " + FloatToStringPrec(time, 2) + " s");
+    };
+  }
+
+  // True if the weapon already has the charge bonus the setting asks for
+  // (its ChargeMultiplier: 0.25 on melee weapons gives the game's +33%), so
+  // the bonus is not added twice to a weapon object made again.
+  private final func HasChargeBonus(stats: ref<StatsSystem>, statsId: StatsObjectID, bonus: Float) -> Bool {
+    if AbsF(bonus - 33.0) <= 0.5 {
+      return true;
+    };
+    return AbsF(stats.GetStatValue(statsId, gamedataStatType.ChargeMultiplier) - 0.25 * bonus / 33.25) <= 0.001;
   }
 
   // The fill rate the game gives a charge: 100 points over the weapon's

@@ -451,6 +451,12 @@ Found from the log (207 Thunder Breaker leaps at force 20%) and the game's data 
 - **Non-lethal throws (D77):** Off by default. On: for an NPC this mod threw in the last 10 s, the ragdoll impact (`DamageSystem.ProcessRagdollHit`, wrapped) gets the Nonlethal hit flag, and the "should die" mark this impact set (a hard impact: `MarkForDeath`) is taken off (`NPCPuppet.BluntLeapCancelDeathMark`). The game's `NPCPuppet.OnPotentialDeath` then knocks it out (Unconscious, or Defeated with Unconscious immunity) instead of killing it. V's own hits are not changed. Not yet tested in game.
 - Proposed and not built (the user chose only Non-lethal throws): a switch for the all-NPC body fix, a throw height setting; hit-stop strength was not recommended.
 
+### Charge time set, not added (2026-11-25, D78)
+
+- **What went wrong:** the mod gave each blunt weapon its charge time as a fixed Additive `ChargeTime` modifier (+1.0 s for two-handed) when it first set the weapon up. When the game makes the weapon object anew without a load, the item's stats keep that modifier, but the entity has lost our charge pool, so the mod set the weapon up again and added another +1.0 s. Seen 2026-11-25: a bat at 1 s, then a second "Charge added" for it at 20:19:22 without a load, after which the log's rate base was 50 per second (2 s) instead of 100; the tooltip read "2 sec Charge Time". Not caused by the charge bar fixes (D61 onwards): the fixed modifier is older.
+- **Now:** `SetChargeTime` reads the weapon's current `ChargeTime` and adds only the difference to the setting (nothing when it already matches). It runs when the weapon is set up, on every later draw and hold start, and when a setting changes, so a weapon that was doubled before is corrected on its next draw or hold (log: "Charge time was 2.00 s, set to 1.00 s"). A new object of a weapon we knew is only forgotten (`ForgetCharge`) and set up again; its stats are not touched. The full-charge bonus (`ChargeMultiplier`) is added only if the weapon does not already have the wanted value (`HasChargeBonus`). Giving a weapon back (mod off, leaving the rule) sets its charge time to 0 (blunt weapons have none in the game).
+- **The tooltip line:** "X sec Charge Time" on a blunt weapon comes from this stat; the game shows it because the mod gives the weapon a charge time (the game's own blunt weapons have none). It shows the setting once the weapon has been drawn with the mod on.
+
 ### Not built
 
 - **Screen-edge pulse at full charge** (default Off in §5): no suitable game effect picked yet.
